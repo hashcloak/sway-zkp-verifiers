@@ -2,6 +2,10 @@ contract;
 
 use sway_ecc::G1Point;
 use sway_ecc::Scalar;
+use std::hash::Hash;
+use std::hash::keccak256;
+use std::bytes::Bytes;
+use std::bytes_conversions::u256::*;
 
 // https://github.com/man2706kum/sway_ecc/blob/main/verifier_fflonk.sol
 // the above contract is generated using snarkjs 
@@ -176,7 +180,7 @@ pub struct Proof {
     // Source: https://github.com/iden3/snarkjs/blob/master/templates/verifier_fflonk.sol.ejs#L96
 }
 pub fn check_field(v: Scalar) -> bool {
-    v.x < Q
+    v.x < q
 }
 
 fn check_input(proof: Proof) -> bool {
@@ -263,4 +267,207 @@ fn check_input(proof: Proof) -> bool {
     }
 
     true
+}
+
+
+// challenges = (alpha, beta, gamma, y)
+fn compute_challenges(proof: &Proof, pub_signals: u256) -> (Scalar, Scalar, Scalar, Scalar) {
+    let mut transcript: Bytes = Bytes::new();
+
+    transcript.append(C0x.to_be_bytes());
+    transcript.append(C0y.to_be_bytes());
+    transcript.append(pub_signals.to_be_bytes());
+    transcript.append(proof.C1.x.to_be_bytes());
+    transcript.append(proof.C1.y.to_be_bytes());
+
+    let mut beta = u256::from(keccak256(transcript));
+    beta = asm (rA, rB: beta, rC: q) {
+        mod rA rB rC;
+        rA: u256
+    };
+
+    let mut gamma = u256::from(keccak256(beta.to_be_bytes()));
+    gamma = asm (rA, rB: gamma, rC: q) {
+        mod rA rB rC;
+        rA: u256
+    };
+
+    let mut transcript2 = Bytes::new();
+
+    transcript2.append(gamma.to_be_bytes());
+    transcript2.append(proof.C2.x.to_be_bytes());
+    transcript2.append(proof.C2.y.to_be_bytes());
+
+    // Get xiSeed & xiSeed2
+    let mut xi_seed = u256::from(keccak256(transcript2));
+    xi_seed = asm (rA, rB: xi_seed, rC: q) {
+        mod rA rB rC;
+        rA: u256
+    };
+    let mut xi_seed2: u256 = 0;
+    asm (rA: xi_seed2, rB: xi_seed, rC: xi_seed, rD: q) {
+        wqmm rA rB rC rD;
+    };
+
+    // Compute roots.S0.h0w8
+    let mut H0w8_0: u256 = 0;
+    asm (rA: H0w8_0, rB: xi_seed2, rC: xi_seed, rD: q) {
+        wqmm rA rB rC rD;
+    };
+
+    let mut H0w8_1: u256 = 0;
+    asm (rA: H0w8_1, rB: H0w8_0, rC: w8_1, rD: q) {
+        wqmm rA rB rC rD;
+    };
+
+    let mut H0w8_2: u256 = 0;
+    asm (rA: H0w8_2, rB: H0w8_0, rC: w8_2, rD: q) {
+        wqmm rA rB rC rD;
+    };
+
+    let mut H0w8_3: u256 = 0;
+    asm (rA: H0w8_3, rB: H0w8_0, rC: w8_3, rD: q) {
+        wqmm rA rB rC rD;
+    };
+
+    let mut H0w8_4: u256 = 0;
+    asm (rA: H0w8_4, rB: H0w8_0, rC: w8_4, rD: q) {
+        wqmm rA rB rC rD;
+    };
+
+    let mut H0w8_5: u256 = 0;
+    asm (rA: H0w8_5, rB: H0w8_0, rC: w8_5, rD: q) {
+        wqmm rA rB rC rD;
+    };
+
+    let mut H0w8_6: u256 = 0;
+    asm (rA: H0w8_6, rB: H0w8_0, rC: w8_6, rD: q) {
+        wqmm rA rB rC rD;
+    };
+
+    let mut H0w8_7: u256 = 0;
+    asm (rA: H0w8_7, rB: H0w8_0, rC: w8_7, rD: q) {
+        wqmm rA rB rC rD;
+    };
+
+    // Compute roots.S1.h1w4
+    let mut H1w4_0: u256 = 0;
+    asm (rA: H1w4_0, rB: H0w8_0, rC: H0w8_0, rD: q) {
+        wqmm rA rB rC rD;
+    };
+
+    let mut H1w4_1: u256 = 0;
+    asm (rA: H1w4_1, rB: H1w4_0, rC: w4, rD: q) {
+        wqmm rA rB rC rD;
+    };
+
+    let mut H1w4_2: u256 = 0;
+    asm (rA: H1w4_2, rB: H1w4_0, rC: w4_2, rD: q) {
+        wqmm rA rB rC rD;
+    };
+
+    let mut H1w4_3: u256 = 0;
+    asm (rA: H1w4_3, rB: H1w4_0, rC: w4_3, rD: q) {
+        wqmm rA rB rC rD;
+    };
+
+    // Compute roots.S2.h2w3
+    let mut H2w3_0: u256 = 0;
+    asm (rA: H2w3_0, rB: H1w4_0, rC: xi_seed2, rD: q) {
+        wqmm rA rB rC rD;
+    };
+
+    let mut H2w3_1: u256 = 0;
+    asm (rA: H2w3_1, rB: H2w3_0, rC: w3, rD: q) {
+        wqmm rA rB rC rD;
+    };
+
+    let mut H2w3_2: u256 = 0;
+    asm (rA: H2w3_2, rB: H2w3_0, rC: w3_2, rD: q) {
+        wqmm rA rB rC rD;
+    };
+
+    // Compute roots.S2.h2w3
+    let mut H3w3_0: u256 = 0;
+    asm (rA: H3w3_0, rB: H2w3_0, rC: wr, rD: q) {
+        wqmm rA rB rC rD;
+    };
+
+    let mut H3w3_1: u256 = 0;
+    asm (rA: H3w3_1, rB: H3w3_0, rC: w3, rD: q) {
+        wqmm rA rB rC rD;
+    };
+
+    let mut H3w3_2: u256 = 0;
+    asm (rA: H3w3_2, rB: H3w3_0, rC: w3_2, rD: q) {
+        wqmm rA rB rC rD;
+    };
+
+    let mut xin: u256 = 0;
+    asm (rA: xin, rB: H2w3_0, rC: H2w3_0, rD: q) {
+        wqmm rA rB rC rD;
+    };
+
+    // Compute xi^n
+    //TODO: power must  be generated per contract
+    let power = 11;
+    let mut i = 0;
+    while i < power {
+        let xin = asm (rA: xin, rB: xin, rC: xin, rD: q) {
+            wqmm rA rB rC rD;
+            rA: u256
+        };
+        i = i + 1;
+    }
+
+    let q_minus_one = q - 1;
+
+    xin = asm (rA: xin, rB: xin, rC: q_minus_one, rD: q) {
+        wqam rA rB rC rD;
+        rA: u256
+    };
+
+    let Zh = xin;
+    let ZhInv = xin; // We will invert later together with lagrange pols
+
+
+    let mut transcript3 = Bytes::new();
+    transcript3.append(xi_seed.to_be_bytes());
+    transcript3.append(proof.q_L.x.to_be_bytes());
+    transcript3.append(proof.q_R.x.to_be_bytes());
+    transcript3.append(proof.q_M.x.to_be_bytes());
+    transcript3.append(proof.q_O.x.to_be_bytes());
+    transcript3.append(proof.q_C.x.to_be_bytes());
+    transcript3.append(proof.S_sigma_1.x.to_be_bytes());
+    transcript3.append(proof.S_sigma_2.x.to_be_bytes());
+    transcript3.append(proof.S_sigma_3.x.to_be_bytes());
+    transcript3.append(proof.a.x.to_be_bytes());
+    transcript3.append(proof.b.x.to_be_bytes());
+    transcript3.append(proof.c.x.to_be_bytes());
+    transcript3.append(proof.z.x.to_be_bytes());
+    transcript3.append(proof.z_omega.x.to_be_bytes());
+    transcript3.append(proof.T_1_omega.x.to_be_bytes());
+    transcript3.append(proof.T_2_omega.x.to_be_bytes());
+    
+    // Compute challenge.alpha
+    let alpha = u256::from(keccak256(transcript3));
+
+    let mut transcript4 = Bytes::new();
+    transcript4.append(alpha.to_be_bytes());
+    transcript4.append(proof.W.x.to_be_bytes());
+    transcript4.append(proof.W.y.to_be_bytes());
+
+    // Compute challenge.y
+    let Y = u256::from(keccak256(transcript4));
+
+
+    (Scalar{
+        x: alpha
+    }, Scalar{
+        x: beta
+    }, Scalar{
+        x: gamma
+    }, Scalar{
+        x: Y
+    })
 }
