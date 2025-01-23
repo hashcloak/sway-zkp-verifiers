@@ -10,7 +10,6 @@ source = "path+from-root-A4E535DF2C0938B1"
 name = "fflonk_verifier"
 source = "member"
 dependencies = [
-    "core git+https://github.com/FuelLabs/sway?rev#c681835d4427b8c36d9f340c8d4340aaa03591e6",
     "std",
     "sway-ecc",
 ]

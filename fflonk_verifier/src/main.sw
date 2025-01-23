@@ -10,7 +10,7 @@ use std::bytes_conversions::u256::*;
 // https://github.com/man2706kum/sway_ecc/blob/main/verifier_fflonk.sol
 // the above contract is generated using snarkjs 
 // the file is taken as a reference as of now
-
+const ZERO: u256 = 0;
 // TODO: These parameters needs to be generated per contract
 const n: u32 = 2048; // Domain size
 // Verification Key data
@@ -37,14 +37,14 @@ const w8_6: u256 = 0xB3C4D79D41A91758CB49C3517C4604A520CFF123608FC9CBu256;
 const w8_7: u256 = 0x130B17119778465CFB3ACAEE30F81DEE20710EAD41671F568B11D9AB07B95A9Bu256;
 
 // Verifier preprocessed input C_0(x)·[1]_1
-const C0x: u256 = 0x2F4C853E1651CDC5D4DE1B8542A968056CA2B5265771E7608FE73BA5C200211Bu256;
-const C0y: u256 = 0x226C212B5B13358AFAAE03F8F1C8100407591CB4F27E38C29DFFFC54050409B1u256;
+const C0x: u256 = 0x2BD05595AC6F85F0547E51771E315C64E2619EFAF837A14EF204336B3EC91B71u256;
+const C0y: u256 = 0x124D334C9193216424BC3FB146BF31B2CF4F5AB55A1754390D11F85CEAB6AE47u256;
 
 // Verifier preprocessed input x·[1]_2
-const X2x1: u256 = 0x139517050A2954C1A2446ED2A7C94F1C0F00FA6B53B8D79EA013B1E531E957D7u256;
-const X2x2: u256 = 0x15B599F0B3F23D5A9D61CB4FB199B2902113E7B50235BDD4F8A35B267E779831u256;
-const X2y1: u256 = 0x1ED10C907A77F346DEF71B43559420C09611360BF7290ED7574C54D8C4F103B0u256;
-const X2y2: u256 = 0x90382A692FC523B9D1DC488FCB620932ABA18576EA9D772B116D24FFBB7168Eu256;
+const X2x1: u256 = 0x29CFD542842EE76BD236E1D6B836066715306F64BEB777A636FDE8B0D854588Au256;
+const X2x2: u256 = 0x9FB0B69FC88C9A3F0EA92686239AAD7467C5D99785B5565C438F9AD82C07A52u256;
+const X2y1: u256 = 0x1209CDBF8BFC573C289A96A855D5A3706D990DCCDCC5705FA214CE41B6C3ACBDu256;
+const X2y2: u256 = 0x1A1D887CEB374F8E8A94E702AB4B477D8E8FFD837A80A1C5164641256EF08E51u256;
 
 // Scalar field size
 pub const q: u256 = 0x30644E72E131A029B85045B68181585D2833E84879B9709143E1F593F0000001u256;
@@ -281,15 +281,15 @@ fn compute_challenges(proof: &Proof, pub_signals: u256) -> (Scalar, Scalar, Scal
     transcript.append(proof.C1.y.to_be_bytes());
 
     let mut beta = u256::from(keccak256(transcript));
-    beta = asm (rA, rB: beta, rC: q) {
-        mod rA rB rC;
-        rA: u256
+    // TODO the mod function result into failing of test. why?
+    // workaround: using the 256bit addmod 
+    asm (rA: beta, rB: beta, rC: ZERO, rD: q) {
+        wqam rA rB rC rD;
     };
 
     let mut gamma = u256::from(keccak256(beta.to_be_bytes()));
-    gamma = asm (rA, rB: gamma, rC: q) {
-        mod rA rB rC;
-        rA: u256
+    asm (rA: gamma, rB: gamma, rC: ZERO, rD: q) {
+        wqam rA rB rC rD;
     };
 
     let mut transcript2 = Bytes::new();
@@ -300,18 +300,18 @@ fn compute_challenges(proof: &Proof, pub_signals: u256) -> (Scalar, Scalar, Scal
 
     // Get xiSeed & xiSeed2
     let mut xi_seed = u256::from(keccak256(transcript2));
-    xi_seed = asm (rA, rB: xi_seed, rC: q) {
-        mod rA rB rC;
-        rA: u256
+    let xi_seed_mod: u256 = 0;
+    asm (rA: xi_seed_mod, rB: xi_seed, rC: ZERO, rD: q) {
+        wqam rA rB rC rD;
     };
     let mut xi_seed2: u256 = 0;
-    asm (rA: xi_seed2, rB: xi_seed, rC: xi_seed, rD: q) {
+    asm (rA: xi_seed2, rB: xi_seed_mod, rC: xi_seed_mod, rD: q) {
         wqmm rA rB rC rD;
     };
 
     // Compute roots.S0.h0w8
     let mut H0w8_0: u256 = 0;
-    asm (rA: H0w8_0, rB: xi_seed2, rC: xi_seed, rD: q) {
+    asm (rA: H0w8_0, rB: xi_seed2, rC: xi_seed_mod, rD: q) {
         wqmm rA rB rC rD;
     };
 
@@ -432,7 +432,7 @@ fn compute_challenges(proof: &Proof, pub_signals: u256) -> (Scalar, Scalar, Scal
 
 
     let mut transcript3 = Bytes::new();
-    transcript3.append(xi_seed.to_be_bytes());
+    transcript3.append(xi_seed_mod.to_be_bytes());
     transcript3.append(proof.q_L.x.to_be_bytes());
     transcript3.append(proof.q_R.x.to_be_bytes());
     transcript3.append(proof.q_M.x.to_be_bytes());
@@ -451,6 +451,9 @@ fn compute_challenges(proof: &Proof, pub_signals: u256) -> (Scalar, Scalar, Scal
     
     // Compute challenge.alpha
     let alpha = u256::from(keccak256(transcript3));
+    asm (rA: alpha, rB: alpha, rC: ZERO, rD: q) {
+        wqam rA rB rC rD;
+    };
 
     let mut transcript4 = Bytes::new();
     transcript4.append(alpha.to_be_bytes());
@@ -459,7 +462,9 @@ fn compute_challenges(proof: &Proof, pub_signals: u256) -> (Scalar, Scalar, Scal
 
     // Compute challenge.y
     let Y = u256::from(keccak256(transcript4));
-
+    asm (rA: Y, rB: Y, rC: ZERO, rD: q) {
+        wqam rA rB rC rD;
+    };
 
     (Scalar{
         x: alpha
@@ -470,4 +475,174 @@ fn compute_challenges(proof: &Proof, pub_signals: u256) -> (Scalar, Scalar, Scal
     }, Scalar{
         x: Y
     })
+}
+
+
+#[test]
+fn test_check_input() {
+    let proof: Proof = Proof{
+        C1: G1Point {
+            x: 0x221ad660d2575bbc12cd0f0e749a9456ecdec9a3b6cc3bbc94c03eb9232e3effu256, 
+            y: 0x126bee477fc98c7cefe0e54f2ef51d03fc2358e604c57cb37c2673b2dddd101eu256,
+        },
+        C2: G1Point {
+            x: 0x2f9f3ec75b8f81f765c9fb6eeb31fa1ca1b3204df38a2ff2bb22c46fbd9ff915u256,
+            y: 0x2c7490abf30fb34d888cf1097be1af1377ec60cca19e57b4da3aa47d2d75dcf5u256,
+        },
+        W: G1Point {
+            x: 0x1a5e23a437fa68b2ad59e2b67b7f32a06a761459a437a3a54ef23a5f237d95c7u256,
+            y: 0x1211244f2addbb44a84ce4c774838690eedf20685b1fbf6a7544edecf41e1bbdu256,
+        },
+        W_dash: G1Point {
+            x: 0x2f03ca7d95fe7908a1eee49bfc707bdb5a9efe3e6b466c8c996c917fc30b3de5u256,
+            y: 0x019cf3081794350aede6c4691f0a61501d94dc2adbc8949c74659d67cb841163u256,
+        },
+        q_L: Scalar{
+            x: 0x067125bdbc6964248b3e1fd02bdb7670a4733b25987cbaeb8ab9199320bb3b6du256,
+        },
+        q_R: Scalar {
+            x: 0x23b69ef5466622623aea51b17c324e55a8f1e20b1572c6ba1fc9956db2bb8689u256,
+        },
+        q_M: Scalar {
+            x: 0x0c542266f24f61387b34d6de59685c1325be0a39a908a79c7e39bf0b3c0d14e2u256,
+        },
+        q_O: Scalar {
+            x: 0x2a51432f583fa236dc9cd7c3cf6b9915d8912fe2cbf8155694f1ed756b26abf7u256,
+        },
+        q_C: Scalar {
+            x: 0x0000000000000000000000000000000000000000000000000000000000000000u256,
+        },
+        S_sigma_1: Scalar {
+            x: 0x1ba150613d8b5bbba067f34c174b5d678d8c4ecd9dc4a75692e29a29fafe8c61u256,
+        },
+        S_sigma_2: Scalar {
+            x: 0x20643c6dc3eec0f68103d94efd913aa1d0558d49df70ef95b65d62ddf864615fu256,
+        },
+        S_sigma_3: Scalar {
+            x: 0x199ddc60fd5b390ceba8d2bb54967a8b78e063ef42d14bbe18b39656a6c39139u256,
+        },
+        a: Scalar {
+            x: 0x1aece3ec4efb852d417f02d6722912e0fa228b7815d570e859019fdd456d4794u256,
+        },
+        b: Scalar {
+            x: 0x0015ec5fef99ea0e8e3641abc74892482e7fac7a916be4067d6e101165e891efu256,
+        },
+        c: Scalar {
+            x: 0x0237611fbb1cdc29a4e565219cc727497c09b25a2e2076b03ef491d107324552u256,
+        },
+        z: Scalar {
+            x: 0x034348c3e8d591329f37054ac4a8e3ec56d75d5a821ad95833e59363e3687a17u256,
+        },
+        z_omega: Scalar {
+            x: 0x30085eec676c53ce01951a1f9b5c67662cbdccc13d2ab180c6170cee7249f2e6u256,
+        },
+        T_1_omega: Scalar {
+            x: 0x03e64174dcca0d13a4c765a3ea9e8107109f98151e24eef9df8ddaeb849e125au256,
+        },
+        T_2_omega: Scalar {
+            x: 0x0ef990764d5a526d52fb17836be9502b36c4d59e644829e20762829f12556be9u256,
+        },
+        batch_inv: Scalar {
+            x: 0x2172803eac8862f41ccc20cc1854cb1e4ec4327c8f3e791863dcd4a7eef0fb69u256,
+        },
+
+    };
+
+    let _public_signal: u256 = 0x110d778eaf8b8ef7ac10f8ac239a14df0eb292a8d1b71340d527b26301a9ab08u256;
+
+    assert(check_input(proof) == true);
+}
+
+#[test]
+fn test_challenge() {
+    let proof: Proof = Proof{
+        C1: G1Point {
+            x: 0x221ad660d2575bbc12cd0f0e749a9456ecdec9a3b6cc3bbc94c03eb9232e3effu256, 
+            y: 0x126bee477fc98c7cefe0e54f2ef51d03fc2358e604c57cb37c2673b2dddd101eu256,
+        },
+        C2: G1Point {
+            x: 0x2f9f3ec75b8f81f765c9fb6eeb31fa1ca1b3204df38a2ff2bb22c46fbd9ff915u256,
+            y: 0x2c7490abf30fb34d888cf1097be1af1377ec60cca19e57b4da3aa47d2d75dcf5u256,
+        },
+        W: G1Point {
+            x: 0x1a5e23a437fa68b2ad59e2b67b7f32a06a761459a437a3a54ef23a5f237d95c7u256,
+            y: 0x1211244f2addbb44a84ce4c774838690eedf20685b1fbf6a7544edecf41e1bbdu256,
+        },
+        W_dash: G1Point {
+            x: 0x2f03ca7d95fe7908a1eee49bfc707bdb5a9efe3e6b466c8c996c917fc30b3de5u256,
+            y: 0x019cf3081794350aede6c4691f0a61501d94dc2adbc8949c74659d67cb841163u256,
+        },
+        q_L: Scalar{
+            x: 0x067125bdbc6964248b3e1fd02bdb7670a4733b25987cbaeb8ab9199320bb3b6du256,
+        },
+        q_R: Scalar {
+            x: 0x23b69ef5466622623aea51b17c324e55a8f1e20b1572c6ba1fc9956db2bb8689u256,
+        },
+        q_M: Scalar {
+            x: 0x0c542266f24f61387b34d6de59685c1325be0a39a908a79c7e39bf0b3c0d14e2u256,
+        },
+        q_O: Scalar {
+            x: 0x2a51432f583fa236dc9cd7c3cf6b9915d8912fe2cbf8155694f1ed756b26abf7u256,
+        },
+        q_C: Scalar {
+            x: 0x0000000000000000000000000000000000000000000000000000000000000000u256,
+        },
+        S_sigma_1: Scalar {
+            x: 0x1ba150613d8b5bbba067f34c174b5d678d8c4ecd9dc4a75692e29a29fafe8c61u256,
+        },
+        S_sigma_2: Scalar {
+            x: 0x20643c6dc3eec0f68103d94efd913aa1d0558d49df70ef95b65d62ddf864615fu256,
+        },
+        S_sigma_3: Scalar {
+            x: 0x199ddc60fd5b390ceba8d2bb54967a8b78e063ef42d14bbe18b39656a6c39139u256,
+        },
+        a: Scalar {
+            x: 0x1aece3ec4efb852d417f02d6722912e0fa228b7815d570e859019fdd456d4794u256,
+        },
+        b: Scalar {
+            x: 0x0015ec5fef99ea0e8e3641abc74892482e7fac7a916be4067d6e101165e891efu256,
+        },
+        c: Scalar {
+            x: 0x0237611fbb1cdc29a4e565219cc727497c09b25a2e2076b03ef491d107324552u256,
+        },
+        z: Scalar {
+            x: 0x034348c3e8d591329f37054ac4a8e3ec56d75d5a821ad95833e59363e3687a17u256,
+        },
+        z_omega: Scalar {
+            x: 0x30085eec676c53ce01951a1f9b5c67662cbdccc13d2ab180c6170cee7249f2e6u256,
+        },
+        T_1_omega: Scalar {
+            x: 0x03e64174dcca0d13a4c765a3ea9e8107109f98151e24eef9df8ddaeb849e125au256,
+        },
+        T_2_omega: Scalar {
+            x: 0x0ef990764d5a526d52fb17836be9502b36c4d59e644829e20762829f12556be9u256,
+        },
+        batch_inv: Scalar {
+            x: 0x2172803eac8862f41ccc20cc1854cb1e4ec4327c8f3e791863dcd4a7eef0fb69u256,
+        },
+
+    };
+
+    let public_signal: u256 = 0x110d778eaf8b8ef7ac10f8ac239a14df0eb292a8d1b71340d527b26301a9ab08u256;
+
+    let challenge = compute_challenges(&proof, public_signal);
+    let expected_beta: u256 = 0x020021ade096c7681a001bf89e1b6b078614be20ed11df702729e254cc4276b7u256;
+
+    let beta = challenge.1;
+    assert(beta.x == expected_beta);
+
+    let expected_gamma: u256 = 0x0562eb8e4aa6364743a62f7bb24c853c6a54f48c20623f8d27d3b7ce1970744du256;
+
+    let gamma = challenge.2;
+    assert(gamma.x == expected_gamma);
+
+    let expected_alpha: u256 = 0x2865d5dd871ee509c9b29f95b2051e92d866ea10b18e6ca3033fd340a67e94e9u256;
+
+    let alpha = challenge.0;
+    assert(alpha.x == expected_alpha);
+
+    let expected_y: u256 = 0x20fa6e3c5a74f67d1fb68ff35619c07fb69a5899c7ca21097356953bab2baee3u256;
+
+    let y = challenge.3;
+    assert(y.x == expected_y);
 }
