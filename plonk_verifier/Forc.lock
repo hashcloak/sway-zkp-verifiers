@@ -1,0 +1,28 @@
+[[package]]
+name = "core"
+source = "git+https://github.com/FuelLabs/sway?rev#c681835d4427b8c36d9f340c8d4340aaa03591e6"
+
+[[package]]
+name = "core"
+source = "path+from-root-A4E535DF2C0938B1"
+
+[[package]]
+name = "plonk_verifier"
+source = "member"
+dependencies = [
+    "std",
+    "sway-ecc",
+]
+
+[[package]]
+name = "std"
+source = "git+https://github.com/FuelLabs/sway?rev#c681835d4427b8c36d9f340c8d4340aaa03591e6"
+dependencies = ["core path+from-root-A4E535DF2C0938B1"]
+
+[[package]]
+name = "sway-ecc"
+source = "git+https://github.com/hashcloak/sway-ecc?default-branch#6bbd3074c2500e12d2dbe7b0adcc9861ff7b1b9f"
+dependencies = [
+    "core git+https://github.com/FuelLabs/sway?rev#c681835d4427b8c36d9f340c8d4340aaa03591e6",
+    "std",
+]
