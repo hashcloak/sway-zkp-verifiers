@@ -10,6 +10,7 @@ use std::bytes_conversions::u256::*;
 // https://github.com/man2706kum/sway_ecc/blob/main/verifier_fflonk.sol
 // the above contract is generated using snarkjs 
 // the file is taken as a reference as of now
+
 const ZERO: u256 = 0;
 // TODO: These parameters needs to be generated per contract
 const n: u32 = 2048; // Domain size
@@ -179,6 +180,24 @@ pub struct Proof {
     // and checking inv(batch) * batch == 1
     // Source: https://github.com/iden3/snarkjs/blob/master/templates/verifier_fflonk.sol.ejs#L96
 }
+
+pub struct Roots {
+    pub s0_h0w8: [u256;8],
+    pub s1_h1w4: [u256;4],
+    pub s2_h2w3: [u256;3],
+    pub s2_h3w3: [u256;3]
+}
+
+pub struct Challenges {
+    pub alpha: u256,
+    pub beta: u256,
+    pub gamma: u256,
+    pub y: u256,
+    pub xi_seed: u256,
+    pub xi_seed2: u256,
+    pub xi: u256,
+}
+
 pub fn check_field(v: Scalar) -> bool {
     v.x < q
 }
@@ -271,7 +290,9 @@ fn check_input(proof: Proof) -> bool {
 
 
 // challenges = (alpha, beta, gamma, y)
-fn compute_challenges(proof: &Proof, pub_signals: u256) -> (Scalar, Scalar, Scalar, Scalar) {
+// roots is needed for later computations
+// last u256 is Z_H(xi)
+fn compute_challenges(proof: &Proof, pub_signals: u256) -> (Challenges, Roots, u256) {
     let mut transcript: Bytes = Bytes::new();
 
     transcript.append(C0x.to_be_bytes());
@@ -283,8 +304,8 @@ fn compute_challenges(proof: &Proof, pub_signals: u256) -> (Scalar, Scalar, Scal
     let mut beta = u256::from(keccak256(transcript));
     // TODO the mod function result into failing of test. why?
     // workaround: using the 256bit addmod 
-    asm (rA: beta, rB: beta, rC: ZERO, rD: q) {
-        wqam rA rB rC rD;
+    asm (rA: beta, rC: ZERO, rD: q) {
+        wqam rA rA rC rD;
     };
 
     let mut gamma = u256::from(keccak256(beta.to_be_bytes()));
@@ -300,18 +321,18 @@ fn compute_challenges(proof: &Proof, pub_signals: u256) -> (Scalar, Scalar, Scal
 
     // Get xiSeed & xiSeed2
     let mut xi_seed = u256::from(keccak256(transcript2));
-    let xi_seed_mod: u256 = 0;
-    asm (rA: xi_seed_mod, rB: xi_seed, rC: ZERO, rD: q) {
-        wqam rA rB rC rD;
+    asm (rA: xi_seed, rC: ZERO, rD: q) {
+        wqam rA rA rC rD;
     };
+
     let mut xi_seed2: u256 = 0;
-    asm (rA: xi_seed2, rB: xi_seed_mod, rC: xi_seed_mod, rD: q) {
+    asm (rA: xi_seed2, rB: xi_seed, rC: xi_seed, rD: q) {
         wqmm rA rB rC rD;
     };
 
     // Compute roots.S0.h0w8
     let mut H0w8_0: u256 = 0;
-    asm (rA: H0w8_0, rB: xi_seed2, rC: xi_seed_mod, rD: q) {
+    asm (rA: H0w8_0, rB: xi_seed2, rC: xi_seed, rD: q) {
         wqmm rA rB rC rD;
     };
 
@@ -406,7 +427,10 @@ fn compute_challenges(proof: &Proof, pub_signals: u256) -> (Scalar, Scalar, Scal
     let mut xin: u256 = 0;
     asm (rA: xin, rB: H2w3_0, rC: H2w3_0, rD: q) {
         wqmm rA rB rC rD;
+        wqmm rA rA rC rD;
     };
+
+    let xi_challenge = xin;
 
     // Compute xi^n
     //TODO: power must  be generated per contract
@@ -428,11 +452,11 @@ fn compute_challenges(proof: &Proof, pub_signals: u256) -> (Scalar, Scalar, Scal
     };
 
     let Zh = xin;
-    let ZhInv = xin; // We will invert later together with lagrange pols
+    // let ZhInv = xin; // We will invert later together with lagrange pols
 
 
     let mut transcript3 = Bytes::new();
-    transcript3.append(xi_seed_mod.to_be_bytes());
+    transcript3.append(xi_seed.to_be_bytes());
     transcript3.append(proof.q_L.x.to_be_bytes());
     transcript3.append(proof.q_R.x.to_be_bytes());
     transcript3.append(proof.q_M.x.to_be_bytes());
@@ -466,17 +490,320 @@ fn compute_challenges(proof: &Proof, pub_signals: u256) -> (Scalar, Scalar, Scal
         wqam rA rB rC rD;
     };
 
-    (Scalar{
-        x: alpha
-    }, Scalar{
-        x: beta
-    }, Scalar{
-        x: gamma
-    }, Scalar{
-        x: Y
-    })
+    ( Challenges{ 
+        alpha: alpha, 
+        beta: beta, 
+        gamma: gamma, 
+        y: Y,
+        xi_seed: xi_seed,
+        xi_seed2: xi_seed2,
+        xi: xi_challenge
+        }, 
+    Roots {
+        s0_h0w8:[H0w8_0, H0w8_1, H0w8_2, H0w8_3, H0w8_4, H0w8_5, H0w8_6, H0w8_7], 
+        s1_h1w4: [H1w4_0, H1w4_1, H1w4_2, H1w4_3], 
+        s2_h2w3: [H2w3_0, H2w3_1, H2w3_2], 
+        s2_h3w3: [H3w3_0, H3w3_1, H3w3_2]
+        },
+        Zh,
+        )
 }
 
+fn compute_li_s0(roots: Roots, challenges: Challenges) -> [u256; 8] {
+
+    let mut li_s0_inv: [u256; 8] = [0; 8];
+    let root0 = roots.s0_h0w8[0];
+    let y = challenges.y;
+
+    let mut den1: u256 = 1;
+    let eight: u256 = 8;
+    asm (rA: den1, rC: root0, rD: q, rE: eight) {
+        wqmm rA rA rC rD;
+        wqmm rA rA rC rD;
+        wqmm rA rA rC rD;
+        wqmm rA rA rC rD;
+        wqmm rA rA rC rD;
+        wqmm rA rA rC rD;
+        wqmm rA rE rA rD;
+    };
+    
+    // i = 0
+    let mut den2: u256 = roots.s0_h0w8[0];
+    let mut den3: u256 = q - roots.s0_h0w8[0];
+
+    asm (rA: den3, rC: challenges.y, rD: q) {
+        wqam rA rA rC rD;
+    }
+
+    asm (rA: li_s0_inv[0], rB: den1, rC: den2, rD: den3, rE: q) {
+        wqmm rA rB rC rE;
+        wqmm rA rA rD rE;
+    }
+
+    // i = 1
+    let mut den2: u256 = roots.s0_h0w8[7];
+    let mut den3: u256 = q - roots.s0_h0w8[1]; 
+    asm (rA: den3, rC: challenges.y, rD: q) {
+        wqam rA rA rC rD;
+    }    
+
+    asm (rA: li_s0_inv[1], rB: den1, rC: den2, rD: den3, rE: q) {
+        wqmm rA rB rC rE;
+        wqmm rA rA rD rE;
+    }
+
+    // i = 2
+    let mut den2: u256 = roots.s0_h0w8[6];
+    let mut den3: u256 = q - roots.s0_h0w8[2]; 
+    asm (rA: den3, rC: challenges.y, rD: q) {
+        wqam rA rA rC rD;
+    }    
+
+    asm (rA: li_s0_inv[2], rB: den1, rC: den2, rD: den3, rE: q) {
+        wqmm rA rB rC rE;
+        wqmm rA rA rD rE;
+    }
+
+    // i = 3
+    let mut den2: u256 = roots.s0_h0w8[5];
+    let mut den3: u256 = q - roots.s0_h0w8[3]; 
+    asm (rA: den3, rC: challenges.y, rD: q) {
+        wqam rA rA rC rD;
+    }    
+
+    asm (rA: li_s0_inv[3], rB: den1, rC: den2, rD: den3, rE: q) {
+        wqmm rA rB rC rE;
+        wqmm rA rA rD rE;
+    }
+
+    // i = 4
+    let mut den2: u256 = roots.s0_h0w8[4];
+    let mut den3: u256 = q - roots.s0_h0w8[4]; 
+    asm (rA: den3, rC: challenges.y, rD: q) {
+        wqam rA rA rC rD;
+    }    
+
+    asm (rA: li_s0_inv[4], rB: den1, rC: den2, rD: den3, rE: q) {
+        wqmm rA rB rC rE;
+        wqmm rA rA rD rE;
+    }
+
+    // i = 5
+    let mut den2: u256 = roots.s0_h0w8[3];
+    let mut den3: u256 = q - roots.s0_h0w8[5]; 
+    asm (rA: den3, rC: challenges.y, rD: q) {
+        wqam rA rA rC rD;
+    }    
+
+    asm (rA: li_s0_inv[5], rB: den1, rC: den2, rD: den3, rE: q) {
+        wqmm rA rB rC rE;
+        wqmm rA rA rD rE;
+    }
+
+    // i = 6
+    let mut den2: u256 = roots.s0_h0w8[2];
+    let mut den3: u256 = q - roots.s0_h0w8[6]; 
+    asm (rA: den3, rC: challenges.y, rD: q) {
+        wqam rA rA rC rD;
+    }    
+
+    asm (rA: li_s0_inv[6], rB: den1, rC: den2, rD: den3, rE: q) {
+        wqmm rA rB rC rE;
+        wqmm rA rA rD rE;
+    }
+
+    // i = 7
+    let mut den2: u256 = roots.s0_h0w8[1];
+    let mut den3: u256 = q - roots.s0_h0w8[7]; 
+    asm (rA: den3, rC: challenges.y, rD: q) {
+        wqam rA rA rC rD;
+    }    
+
+    asm (rA: li_s0_inv[7], rB: den1, rC: den2, rD: den3, rE: q) {
+        wqmm rA rB rC rE;
+        wqmm rA rA rD rE;
+    }
+
+    return li_s0_inv;
+}
+
+fn compute_li_s1(roots: Roots, challenges: Challenges) -> [u256; 4] {
+
+    let mut li_s1_inv = [0; 4];
+    let root0 = roots.s1_h1w4[0];
+    let y = challenges.y;
+
+    let mut den1: u256 = 1;
+    let four: u256 = 4;
+    asm (rA: den1, rB: root0, rC: four, rE: q) {
+        wqam rA rA rB rE;
+        wqam rA rA rB rE;
+        wqam rA rA rC rE;
+    }
+
+    // i = 0
+    let mut den2 = roots.s1_h1w4[0];
+    let mut den3 = q - roots.s1_h1w4[0]; 
+    asm (rA: den3, rC: y, rD: q) {
+        wqam rA rA rC rD;
+    }    
+
+    asm (rA: li_s1_inv[0], rB: den1, rC: den2, rD: den3, rE: q) {
+        wqmm rA rB rC rE;
+        wqmm rA rA rD rE;
+    }
+
+    // i = 1
+    let mut den2 = roots.s1_h1w4[3];
+    let mut den3 = q - roots.s1_h1w4[1]; 
+    asm (rA: den3, rC: y, rD: q) {
+        wqam rA rA rC rD;
+    }    
+
+    asm (rA: li_s1_inv[1], rB: den1, rC: den2, rD: den3, rE: q) {
+        wqmm rA rB rC rE;
+        wqmm rA rA rD rE;
+    }
+
+    // i = 2
+    let mut den2 = roots.s1_h1w4[2];
+    let mut den3 = q - roots.s1_h1w4[2]; 
+    asm (rA: den3, rC: y, rD: q) {
+        wqam rA rA rC rD;
+    }    
+
+    asm (rA: li_s1_inv[2], rB: den1, rC: den2, rD: den3, rE: q) {
+        wqmm rA rB rC rE;
+        wqmm rA rA rD rE;
+    }
+
+    // i = 3
+    let mut den2 = roots.s1_h1w4[1];
+    let mut den3 = q - roots.s1_h1w4[3]; 
+    asm (rA: den3, rC: y, rD: q) {
+        wqam rA rA rC rD;
+    }    
+
+    asm (rA: li_s1_inv[3], rB: den1, rC: den2, rD: den3, rE: q) {
+        wqmm rA rB rC rE;
+        wqmm rA rA rD rE;
+    }
+
+    return li_s1_inv;
+    
+}
+
+fn compute_li_s2(roots: Roots, challenges: Challenges) -> [u256; 6] {
+
+    let mut li_s2_inv = [0; 6];
+    let y = challenges.y;
+
+    let mut t1: u256 = roots.s2_h2w3[0];
+    let mut t2: u256 = 0;
+    let three: u256 = 3;
+    asm (rA: t1, rB: three, rC: q, rD: t2, dE: challenges.xi, dF: w1) {
+        wqmm rA rA rB rC;
+        wqmm rD dE dF rC;
+    }
+
+    let mut t3: u256 = q - t2;
+    let mut den1: u256 = 0;
+
+    asm (rA: den1, rB: t1, rC: t3, rD: q) {
+        wqmm rA rB rC rD;
+    }
+
+    // i = 0
+    let mut den2: u256 = roots.s2_h2w3[0];
+    let mut den3: u256 = q - roots.s2_h2w3[0];
+
+    asm (rA: den3, rC: y, rD: q) {
+        wqam rA rA rC rD;
+    }
+
+    asm (rA: li_s2_inv[0], rB: den1, rC: den2, rD: den3, rE: q) {
+        wqmm rA rB rC rE;
+        wqmm rA rA rD rE;
+    };
+
+    // i = 1
+    let mut den2: u256 = roots.s2_h2w3[2];
+    let mut den3: u256 = q - roots.s2_h2w3[1]; 
+    asm (rA: den3, rC: y, rD: q) {
+        wqam rA rA rC rD;
+    }
+
+    asm (rA: li_s2_inv[1], rB: den1, rC: den2, rD: den3, rE: q) {
+        wqmm rA rB rC rE;
+        wqmm rA rA rD rE;
+    };
+
+    // i = 2
+    let mut den2: u256 = roots.s2_h2w3[1];
+    let mut den3: u256 = q - roots.s2_h2w3[2]; 
+    asm (rA: den3, rC: y, rD: q) {
+        wqam rA rA rC rD;
+    }
+
+    asm (rA: li_s2_inv[2], rB: den1, rC: den2, rD: den3, rE: q) {
+        wqmm rA rB rC rE;
+        wqmm rA rA rD rE;
+    };
+
+    let mut t1: u256 = roots.s2_h3w3[0];
+    let mut t2: u256 = 0; // xi*w1
+    let three: u256 = 3;
+    asm (rA: t1, rB: three, rC: q, rD: t2, dE: challenges.xi, dF: w1) {
+        wqmm rA rA rB rC;
+        wqmm rD dE dF rC;
+    }
+
+    let mut t3: u256 = q - challenges.xi;
+    let mut den1: u256 = 0;
+
+    asm (rA: den1, rB: t1, rC: t3, rD: q, rE: t2) {
+        wqam rA rE rC rD;
+        wqmm rA rA rB rD;
+    };
+
+    // i = 0
+    let mut den2: u256 = roots.s2_h3w3[0];
+    let mut den3: u256 = q - roots.s2_h3w3[0]; 
+    asm (rA: den3, rC: y, rD: q) {
+        wqam rA rA rC rD;
+    }
+
+    asm (rA: li_s2_inv[3], rB: den1, rC: den2, rD: den3, rE: q) {
+        wqmm rA rB rC rE;
+        wqmm rA rA rD rE;
+    };
+
+    // i = 1
+    let mut den2: u256 = roots.s2_h3w3[2];
+    let mut den3: u256 = q - roots.s2_h3w3[1]; 
+    asm (rA: den3, rC: y, rD: q) {
+        wqam rA rA rC rD;
+    }
+
+    asm (rA: li_s2_inv[4], rB: den1, rC: den2, rD: den3, rE: q) {
+        wqmm rA rB rC rE;
+        wqmm rA rA rD rE;
+    };
+
+    // i = 2
+    let mut den2: u256 = roots.s2_h3w3[1];
+    let mut den3: u256 = q - roots.s2_h3w3[2]; 
+    asm (rA: den3, rC: y, rD: q) {
+        wqam rA rA rC rD;
+    }
+
+    asm (rA: li_s2_inv[5], rB: den1, rC: den2, rD: den3, rE: q) {
+        wqmm rA rB rC rE;
+        wqmm rA rA rD rE;
+    };
+
+    li_s2_inv
+}
 
 #[test]
 fn test_check_input() {
@@ -625,24 +952,28 @@ fn test_challenge() {
 
     let public_signal: u256 = 0x110d778eaf8b8ef7ac10f8ac239a14df0eb292a8d1b71340d527b26301a9ab08u256;
 
-    let challenge = compute_challenges(&proof, public_signal);
+    let (challenge, _, _) = compute_challenges(&proof, public_signal);
     let expected_beta: u256 = 0x020021ade096c7681a001bf89e1b6b078614be20ed11df702729e254cc4276b7u256;
 
-    let beta = challenge.1;
-    assert(beta.x == expected_beta);
+    let beta = challenge.beta;
+    assert(beta == expected_beta);
 
     let expected_gamma: u256 = 0x0562eb8e4aa6364743a62f7bb24c853c6a54f48c20623f8d27d3b7ce1970744du256;
 
-    let gamma = challenge.2;
-    assert(gamma.x == expected_gamma);
+    let gamma = challenge.gamma;
+    assert(gamma == expected_gamma);
 
     let expected_alpha: u256 = 0x2865d5dd871ee509c9b29f95b2051e92d866ea10b18e6ca3033fd340a67e94e9u256;
 
-    let alpha = challenge.0;
-    assert(alpha.x == expected_alpha);
+    let alpha = challenge.alpha;
+    assert(alpha == expected_alpha);
 
     let expected_y: u256 = 0x20fa6e3c5a74f67d1fb68ff35619c07fb69a5899c7ca21097356953bab2baee3u256;
 
-    let y = challenge.3;
-    assert(y.x == expected_y);
+    let y = challenge.y;
+    assert(y == expected_y);
+
+    let expected_xi: u256 = 0x11fdb4ddc0b2765f1d8cbfc856e9bffdff2cf134d37901c09dad275aa56684f7u256;
+    let xi = challenge.xi;
+    assert(xi == expected_xi);
 }
