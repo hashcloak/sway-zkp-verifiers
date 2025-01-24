@@ -556,19 +556,45 @@ impl Proof {
         return res;
     }
 
+    fn calculateF(self,
+      v: Scalar,
+      v2: Scalar,
+      v3: Scalar,
+      v4: Scalar,
+      v5: Scalar,
+      D: G1Point
+    ) -> G1Point {
+        // D + v · [a]1
+        let mut temp: G1Point = self.proof_A.scalar_mul(v);
+        let mut res: G1Point = D.point_add(temp);
+        // v2 · [b]1
+        temp = self.proof_B.scalar_mul(v2);
+        res = res.point_add(temp);
+        // v3 · [c]1
+        temp = self.proof_C.scalar_mul(v3);
+        res = res.point_add(temp);
+        // v4 · [sσ1]1
+        temp = vk.S1.scalar_mul(v4);
+        res = res.point_add(temp);
+        // v5 · [sσ2]1
+        temp = vk.S2.scalar_mul(v5);
+        res = res.point_add(temp);
+        return res; 
+    }
+
     // In this case, public input has length 1
     pub fn verify(self, publicInput: u256) -> bool {
         // 1. TODO check fields
         // 2. TODO check fields
         // 3. TODO check fields
-        // Step 4: Recompute challenges beta, gamma, alpha, xi, nu, and u in the field F
+        // Step 4: Recompute challenges beta, gamma, alpha, xi, v, and u in the field F
         // (β, γ, α, z, v, u)
         let challenges = self.get_challenges(publicInput);
         let beta = u256::from(challenges[0]);
         let gamma = u256::from(challenges[1]);
         let alpha = u256::from(challenges[2]);
         let xi = u256::from(challenges[3]);
-        let nu = u256::from(challenges[4]);
+        let v = u256::from(challenges[4]);
         let u = u256::from(challenges[5]);
 
         // Step 5&6: compute w(z^n-1)/n*(z-w)
@@ -606,11 +632,33 @@ impl Proof {
           gamma,
           xi,
           xi_pow_n,
-          nu,
+          v,
           u
         );
 
         // Step 10: compute F
+        let mut v2: u256 = 0;
+        let mut v3: u256 = 0;
+        let mut v4: u256 = 0;
+        let mut v5: u256 = 0;
+        asm (rA: v2, rB: v, rC: v, rD: vk.q.x) {
+          wqmm rA rB rC rD;
+        };
+        asm (rA: v3, rB: v2, rC: v, rD: vk.q.x) {
+          wqmm rA rB rC rD;
+        };
+        asm (rA: v4, rB: v3, rC: v, rD: vk.q.x) {
+          wqmm rA rB rC rD;
+        };
+        asm (rA: v5, rB: v4, rC: v, rD: vk.q.x) {
+          wqmm rA rB rC rD;
+        };
+        let v_scalar = Scalar { x: v };
+        let v2_scalar = Scalar { x: v2 };
+        let v3_scalar = Scalar { x: v3 };
+        let v4_scalar = Scalar { x: v4 };
+        let v5_scalar = Scalar { x: v5 };
+        let F: G1Point = self.calculateF(v_scalar, v2_scalar, v3_scalar, v4_scalar, v5_scalar, D);
 
         // Step 11: compute E
 
@@ -809,7 +857,7 @@ fn test_calculate_d(){
     let proof = get_test_proof();
     let xi: u256 = u256::from(0x0d4145839d4fdb8f5fd1533b384e24940bf7114b39cdd16f163838bbaeec9e32);
     let w: u256 = 1;
-    let (num, denom, xi_pow_n): (u256, u256, u256) = proof.calculateLagrange(vk, xi, w);
+    let (num, denom, xi_pow_n): (u256, u256, u256) = proof.calculateLagrange(xi, w);
 
     let pEval_l1 = 0x0f54b0a27de056bddb97b2c04c514603caba86c9c0a2569d829216adfc954077u256;
     let PIz = 0x11c7a56987673d886a2226c9b8a82be88679e261f5b593c0d8b4e9e7b46a9ff6u256;
@@ -837,4 +885,39 @@ fn test_calculate_d(){
 
     assert(D.x == 0x12fe947ff97765524ee878302c1f5405173f4c0e6af173d43972bb887d554d96u256);
     assert(D.y == 0x229ba69429158abe97a0fd03ab54a54928a1d36917a5bc79937554563e16d74cu256);
+}
+
+#[test]
+fn test_calculate_f(){
+    let v: u256 = 0x168c1810dcfcb6d7bbee36e0140593e4382ca849c3d6539eaa1e2ebb84e83262u256;
+    let proof = get_test_proof();
+    let mut v2: u256 = 0;
+    let mut v3: u256 = 0;
+    let mut v4: u256 = 0;
+    let mut v5: u256 = 0;
+    asm (rA: v2, rB: v, rC: v, rD: vk.q.x) {
+      wqmm rA rB rC rD;
+    };
+    asm (rA: v3, rB: v2, rC: v, rD: vk.q.x) {
+      wqmm rA rB rC rD;
+    };
+    asm (rA: v4, rB: v3, rC: v, rD: vk.q.x) {
+      wqmm rA rB rC rD;
+    };
+    asm (rA: v5, rB: v4, rC: v, rD: vk.q.x) {
+      wqmm rA rB rC rD;
+    };
+    let v_scalar = Scalar { x: v };
+    let v2_scalar = Scalar { x: v2 };
+    let v3_scalar = Scalar { x: v3 };
+    let v4_scalar = Scalar { x: v4 };
+    let v5_scalar = Scalar { x: v5 };
+    
+    let Dx: u256 = 0x12fe947ff97765524ee878302c1f5405173f4c0e6af173d43972bb887d554d96u256;
+    let Dy: u256 = 0x229ba69429158abe97a0fd03ab54a54928a1d36917a5bc79937554563e16d74cu256;
+    let D: G1Point = G1Point { x: Dx, y: Dy };
+    let F: G1Point = proof.calculateF(v_scalar, v2_scalar, v3_scalar, v4_scalar, v5_scalar, D);
+    
+    assert(F.x == 0x290426106c4903d8adddc78c613e8b3cc9f8e19fc8c6f97529a36dacff21f1fbu256);
+    assert(F.y == 0x2e4ca5ddd8da31b57ebe36cdcd98e9910e6faeb5c478cf8ec7042d70b9e05772u256);
 }
