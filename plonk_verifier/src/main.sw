@@ -582,6 +582,47 @@ impl Proof {
         return res; 
     }
 
+    fn calculateE(self,
+      r0: u256,
+      u: Scalar,
+      v: Scalar,
+      v2: Scalar,
+      v3: Scalar,
+      v4: Scalar,
+      v5: Scalar,
+      ) -> G1Point {
+        // −r0 + v¯a + v2¯b + v3¯c + v4¯sσ1 + v5¯sσ2 + u¯zω
+        // q-r0
+        let mut acc_scalar: u256 = vk.q.x - r0;
+        let mut temp: u256 = 0;
+        asm (rA: temp, rB: v, rC: self.eval_a, rD: vk.q.x) {
+          wqmm rA rB rC rD;
+        };
+        acc_scalar += temp;
+        asm (rA: temp, rB: v2, rC: self.eval_b, rD: vk.q.x) {
+          wqmm rA rB rC rD;
+        };
+        acc_scalar += temp;
+        asm (rA: temp, rB: v3, rC: self.eval_c, rD: vk.q.x) {
+          wqmm rA rB rC rD;
+        };
+        acc_scalar += temp;
+        asm (rA: temp, rB: v4, rC: self.eval_s1, rD: vk.q.x) {
+          wqmm rA rB rC rD;
+        };
+        acc_scalar += temp;
+        asm (rA: temp, rB: v5, rC: self.eval_s2, rD: vk.q.x) {
+          wqmm rA rB rC rD;
+        };
+        acc_scalar += temp;
+        asm (rA: temp, rB: u, rC: self.eval_zw, rD: vk.q.x) {
+          wqmm rA rB rC rD;
+        };
+        acc_scalar += temp;
+        let res = vk.G1.scalar_mul(Scalar { x: acc_scalar });
+        return res; 
+    }
+
     // In this case, public input has length 1
     pub fn verify(self, publicInput: u256) -> bool {
         // 1. TODO check fields
@@ -920,4 +961,40 @@ fn test_calculate_f(){
     
     assert(F.x == 0x290426106c4903d8adddc78c613e8b3cc9f8e19fc8c6f97529a36dacff21f1fbu256);
     assert(F.y == 0x2e4ca5ddd8da31b57ebe36cdcd98e9910e6faeb5c478cf8ec7042d70b9e05772u256);
+}
+
+#[test]
+fn test_calculate_e(){
+    let u: u256 = 0x1f0b89079ac8c5c8af6b1480eb3ad5661afb28ff7a4096f00422dc675d5c711au256;
+    let v: u256 = 0x168c1810dcfcb6d7bbee36e0140593e4382ca849c3d6539eaa1e2ebb84e83262u256;
+    let proof = get_test_proof();
+    let mut v2: u256 = 0;
+    let mut v3: u256 = 0;
+    let mut v4: u256 = 0;
+    let mut v5: u256 = 0;
+    asm (rA: v2, rB: v, rC: v, rD: vk.q.x) {
+      wqmm rA rB rC rD;
+    };
+    asm (rA: v3, rB: v2, rC: v, rD: vk.q.x) {
+      wqmm rA rB rC rD;
+    };
+    asm (rA: v4, rB: v3, rC: v, rD: vk.q.x) {
+      wqmm rA rB rC rD;
+    };
+    asm (rA: v5, rB: v4, rC: v, rD: vk.q.x) {
+      wqmm rA rB rC rD;
+    };
+    let u_scalar = Scalar { x: u };
+    let v_scalar = Scalar { x: v };
+    let v2_scalar = Scalar { x: v2 };
+    let v3_scalar = Scalar { x: v3 };
+    let v4_scalar = Scalar { x: v4 };
+    let v5_scalar = Scalar { x: v5 };
+    
+    let r0: u256 = 0x250144c24fc35df3f70f144497bea4b7efebe7f0d1d73794af958bca5eaba559u256;
+
+    let E: G1Point = proof.calculateE(r0, u_scalar, v_scalar, v2_scalar, v3_scalar, v4_scalar, v5_scalar);
+    
+    assert(E.x == 0x0dbe940aba2194573041b5fe36a10418ee90345f22573da4f38c6e542f9ff07cu256);
+    assert(E.y == 0xbc12210fdfd6c6a8846bae29d8daf0e444ad5d91f65276628ba3157a8b3b4d6u256);
 }
