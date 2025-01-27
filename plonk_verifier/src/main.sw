@@ -1,6 +1,6 @@
 contract;
 mod lib;
-use lib::{G1Point, G2Point, Scalar};
+use lib::{G1Point, G2Point, Scalar, on_bn128_curve};
 use std::hash::Hash;
 use std::hash::{keccak256, sha256};
 use std::bytes::Bytes;
@@ -127,6 +127,10 @@ const vk = VerificationKey {
         ]
     },
 };
+
+pub fn is_field(val: Scalar, q: u256) -> bool {
+  val.x < q
+}
 
 struct Proof {
   pub proof_A: G1Point,
@@ -292,7 +296,8 @@ impl Proof {
         asm (rA: res, rB: pEval_l1, rC: publicInput, rD: vk.q.x) {
             wqmm rA rB rC rD;
         };
-        return res;
+        // Same as in Solidity code, negate PI
+        return vk.q.x - res;
     }
 
     // r0 := PI(z) − L1(z)α2 − α(¯a + β¯sσ1 + γ)(¯b + β¯sσ2 + γ)(¯c + γ)¯zω,
@@ -625,9 +630,33 @@ impl Proof {
 
     // In this case, public input has length 1
     pub fn verify(self, publicInput: u256) -> bool {
-        // 1. TODO check fields
-        // 2. TODO check fields
-        // 3. TODO check fields
+        // 1. Check points are on curve
+        // ([a]1, [b]1, [c]1, [z]1, [tlo]1, [tmid]1, [thi]1, [Wz]1, [Wzω]1) ∈ G91
+        if !(on_bn128_curve(self.proof_A)
+            && on_bn128_curve(self.proof_B)
+            && on_bn128_curve(self.proof_C)
+            && on_bn128_curve(self.proof_Z)
+            && on_bn128_curve(self.proof_T1)
+            && on_bn128_curve(self.proof_T2)
+            && on_bn128_curve(self.proof_T3)
+            && on_bn128_curve(self.proof_Wxi)
+            && on_bn128_curve(self.proof_Wxiw)) {
+            return false;
+        }
+        // 2. Validate (¯a, ¯b, ¯c,¯sσ1,¯sσ2, ¯zω) ∈ F6 (scalar field, q)
+        if !(is_field(self.eval_a, vk.q.x)
+            && is_field(self.eval_b, vk.q.x)
+            && is_field(self.eval_c, vk.q.x)
+            && is_field(self.eval_s1, vk.q.x)
+            && is_field(self.eval_s2, vk.q.x)
+            && is_field(self.eval_zw, vk.q.x)) {
+          return false; 
+        }
+        // 3. Validate public input 
+        // (wi)i∈[ℓ] ∈ Fℓ
+        if !is_field(Scalar {x: publicInput}, vk.q.x) {
+          return false; 
+        }
         // Step 4: Recompute challenges beta, gamma, alpha, xi, v, and u in the field F
         // (β, γ, α, z, v, u)
         let challenges = self.get_challenges(publicInput);
@@ -644,7 +673,9 @@ impl Proof {
 
         // Step 7: compute PI (public input polynomial evaluation)
         // sum(w_i*L_i(xi)) 
-        // xi = xi in Solidity Verifier
+        // Following Solidity implementation -sum(w_i*L_i(xi)) 
+        // zeta = xi in Solidity Verifier
+        // TODO
         // temporarily, take hardcoded value, until inversion has been implemented
         let pEval_l1_temp = u256::from(0x0f54b0a27de056bddb97b2c04c514603caba86c9c0a2569d829216adfc954077);
         let PI = self.calculatePI(pEval_l1_temp, publicInput);
@@ -702,11 +733,70 @@ impl Proof {
         let F: G1Point = self.calculateF(v_scalar, v2_scalar, v3_scalar, v4_scalar, v5_scalar, D);
 
         // Step 11: compute E
+        let u_scalar = Scalar { x: u };
+        let E: G1Point = self.calculateE(R0, u_scalar, v_scalar, v2_scalar, v3_scalar, v4_scalar, v5_scalar);
 
-        return false;
+        // Step 12: check pairing
+        // A1 = [Wz]1 + u · [Wzω]1
+        let mut a1: G1Point = self.proof_Wxiw.scalar_mul(u_scalar);
+        a1 = a1.point_add(self.proof_Wxi);
+        let a1_neg = G1Point {
+          x: a1.x,
+          y: (vk.qf.x - a1.y) % vk.qf.x
+        };
+
+        // B1 = z · [Wz]1 + uzω · [Wzω]1 + [F]1 − [E]1
+        let mut b1: G1Point = self.proof_Wxi.scalar_mul(Scalar {x: xi });
+        let mut temp: u256 = 0;
+        asm (rA: temp, rB: u, rC: xi, rD: vk.q.x) {
+          wqmm rA rB rC rD;
+        };
+        let w1: u256 = 0x027a358499c5042bb4027fd7a5355d71b8c12c177494f0cad00a58f9769a2ee2u256;
+        asm (rA: temp, rB: temp, rC: w1, rD: vk.q.x) {
+          wqmm rA rB rC rD;
+        };
+
+        b1 = b1.point_add(self.proof_Wxiw.scalar_mul(Scalar { x: temp }));
+        b1 = b1.point_add(F);
+        let E_neg = G1Point {
+            x: E.x,
+            y: (vk.qf.x - E.y) % vk.qf.x
+        };
+        b1 = b1.point_add(E_neg);
+
+        // Serialize inputs for EPAR
+        let mut pairing_input: [u256; 12] = [0; 12];
+
+        // Pairing input: -A1, X2
+        pairing_input[0] = a1_neg.x;
+        pairing_input[1] = a1_neg.y;
+        // g2: [[x1, x0], [y1, y0]]
+        pairing_input[3] = vk.X2.x[0];
+        pairing_input[2] = vk.X2.x[1];
+        pairing_input[5] = vk.X2.y[0];
+        pairing_input[4] = vk.X2.y[1];
+
+        // Pairing input: B1, [1]_2
+        pairing_input[6] = b1.x;
+        pairing_input[7] = b1.y;
+        // g2: [[x1, x0], [y1, y0]]
+        pairing_input[9] = vk.G2.x[0];
+        pairing_input[8] = vk.G2.x[1];
+        pairing_input[11] = vk.G2.y[0];
+        pairing_input[10] = vk.G2.y[1];
+
+        // Perform pairing check
+        let curve_id: u32 = 0;
+        let groups_of_points: u32 = 2;
+        
+        let result: u32 = asm(rA, rB: curve_id, rC: groups_of_points, rD: pairing_input) {
+            epar rA rB rC rD;
+            rA: u32
+        };
+        
+        result != 0
     }
 }
-
 
 fn get_test_proof() -> Proof {
       let proof_A = G1Point{
@@ -800,6 +890,12 @@ fn get_test_proof() -> Proof {
     return proof;
 }
 
+#[test]
+fn test_verification() {
+    let proof = get_test_proof();
+    let publicInput: u256 = 0x110d778eaf8b8ef7ac10f8ac239a14df0eb292a8d1b71340d527b26301a9ab08u256;
+    assert(proof.verify(publicInput));
+}
 
 #[test]
 fn test_challenges_correct() {
@@ -842,10 +938,10 @@ fn test_calculate_lagrange() {
     // assert(pEval_l1 == expected_pEval_l1);
 }
 
-// This test fails, the Solidity code actually does something slightly different than the paper
-// should be pEval_l1*pub[0] mod q
-// Solidity code does 0-(pEval_l1*pub[0]) mod q
-// #[test]
+// The Solidity code actually does something slightly different than the paper
+// in the paper: pEval_l1*pub[0] mod q
+// Solidity code (and this impl): 0-(pEval_l1*pub[0]) mod q
+#[test]
 fn test_calculate_pi() {
     let proof = get_test_proof();
     // q= 
