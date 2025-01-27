@@ -89,60 +89,60 @@ pub const G2y2: u256 = 0x90689D0585FF075EC9E99AD690C3395BC4B313370B38EF355ACDADC
 
 // Memory data
 // Challenges
-const pAlpha: u16 = 0; // alpha challenge
-const pBeta: u16 = 32; // beta challenge
-const pGamma: u16 = 64; // gamma challenge
-const pY: u16 = 96; // y challenge
-const pXiSeed: u16 = 128; // xi seed, from this value we compute xi = xiSeed^24
-const pXiSeed2: u16 = 160; // (xi seed)^2
-const pXi: u16 = 192; // xi challenge
-// Roots
-// S_0 = roots_8(xi) = { h_0, h_0w_8, h_0w_8^2, h_0w_8^3, h_0w_8^4, h_0w_8^5, h_0w_8^6, h_0w_8^7 }
-const pH0w8_0: u16 = 224;
-const pH0w8_1: u16 = 256;
-const pH0w8_2: u16 = 288;
-const pH0w8_3: u16 = 320;
-const pH0w8_4: u16 = 352;
-const pH0w8_5: u16 = 384;
-const pH0w8_6: u16 = 416;
-const pH0w8_7: u16 = 448;
+// const pAlpha: u16 = 0; // alpha challenge
+// const pBeta: u16 = 32; // beta challenge
+// const pGamma: u16 = 64; // gamma challenge
+// const pY: u16 = 96; // y challenge
+// const pXiSeed: u16 = 128; // xi seed, from this value we compute xi = xiSeed^24
+// const pXiSeed2: u16 = 160; // (xi seed)^2
+// const pXi: u16 = 192; // xi challenge
+// // Roots
+// // S_0 = roots_8(xi) = { h_0, h_0w_8, h_0w_8^2, h_0w_8^3, h_0w_8^4, h_0w_8^5, h_0w_8^6, h_0w_8^7 }
+// const pH0w8_0: u16 = 224;
+// const pH0w8_1: u16 = 256;
+// const pH0w8_2: u16 = 288;
+// const pH0w8_3: u16 = 320;
+// const pH0w8_4: u16 = 352;
+// const pH0w8_5: u16 = 384;
+// const pH0w8_6: u16 = 416;
+// const pH0w8_7: u16 = 448;
 
-// S_1 = roots_4(xi) = { h_1, h_1w_4, h_1w_4^2, h_1w_4^3 }
-const pH1w4_0: u16 = 480;
-const pH1w4_1: u16 = 512;
-const pH1w4_2: u16 = 544;
-const pH1w4_3: u16 = 576;
+// // S_1 = roots_4(xi) = { h_1, h_1w_4, h_1w_4^2, h_1w_4^3 }
+// const pH1w4_0: u16 = 480;
+// const pH1w4_1: u16 = 512;
+// const pH1w4_2: u16 = 544;
+// const pH1w4_3: u16 = 576;
 
-// S_2 = roots_3(xi) U roots_3(xi omega)
-// roots_3(xi) = { h_2, h_2w_3, h_2w_3^2 }
-const pH2w3_0: u16 = 608;
-const pH2w3_1: u16 = 640;
-const pH2w3_2: u16 = 672;
-// roots_3(xi omega) = { h_3, h_3w_3, h_3w_3^2 }
-const pH3w3_0: u16 = 704;
-const pH3w3_1: u16 = 736;
-const pH3w3_2: u16 = 768;
+// // S_2 = roots_3(xi) U roots_3(xi omega)
+// // roots_3(xi) = { h_2, h_2w_3, h_2w_3^2 }
+// const pH2w3_0: u16 = 608;
+// const pH2w3_1: u16 = 640;
+// const pH2w3_2: u16 = 672;
+// // roots_3(xi omega) = { h_3, h_3w_3, h_3w_3^2 }
+// const pH3w3_0: u16 = 704;
+// const pH3w3_1: u16 = 736;
+// const pH3w3_2: u16 = 768;
 
-const pPi: u16 = 800; // PI(xi)
-const pR0: u16 = 832; // r0(y)
-const pR1: u16 = 864; // r1(y)
-const pR2: u16 = 896; // r2(y)
-const pF: u16 = 928; // [F]_1, 64 bytes
-const pE: u16 = 992; // [E]_1, 64 bytes
-const pJ: u16 = 1056; // [J]_1, 64 bytes
-const pZh: u16 = 1184; // Z_H(xi)
-// From this point we write all the variables that must be computed using the Montgomery batch inversion
-const pZhInv: u16 = 1216; // 1/Z_H(xi)
-const pDenH1: u16 = 1248; // 1/( (y-h_1w_4) (y-h_1w_4^2) (y-h_1w_4^3) (y-h_1w_4^4) )
-const pDenH2: u16 = 1280; // 1/( (y-h_2w_3) (y-h_2w_3^2) (y-h_2w_3^3) (y-h_3w_3) (y-h_3w_3^2) (y-h_3w_3^3) )
-const pLiS0Inv: u16 = 1312; // Reserve 8 * 32 bytes to compute r_0(X)
-const pLiS1Inv: u16 = 1568; // Reserve 4 * 32 bytes to compute r_1(X)
-const pLiS2Inv: u16 = 1696; // Reserve 6 * 32 bytes to compute r_2(X)
-// Lagrange evaluations
+// const pPi: u16 = 800; // PI(xi)
+// const pR0: u16 = 832; // r0(y)
+// const pR1: u16 = 864; // r1(y)
+// const pR2: u16 = 896; // r2(y)
+// const pF: u16 = 928; // [F]_1, 64 bytes
+// const pE: u16 = 992; // [E]_1, 64 bytes
+// const pJ: u16 = 1056; // [J]_1, 64 bytes
+// const pZh: u16 = 1184; // Z_H(xi)
+// // From this point we write all the variables that must be computed using the Montgomery batch inversion
+// const pZhInv: u16 = 1216; // 1/Z_H(xi)
+// const pDenH1: u16 = 1248; // 1/( (y-h_1w_4) (y-h_1w_4^2) (y-h_1w_4^3) (y-h_1w_4^4) )
+// const pDenH2: u16 = 1280; // 1/( (y-h_2w_3) (y-h_2w_3^2) (y-h_2w_3^3) (y-h_3w_3) (y-h_3w_3^2) (y-h_3w_3^3) )
+// const pLiS0Inv: u16 = 1312; // Reserve 8 * 32 bytes to compute r_0(X)
+// const pLiS1Inv: u16 = 1568; // Reserve 4 * 32 bytes to compute r_1(X)
+// const pLiS2Inv: u16 = 1696; // Reserve 6 * 32 bytes to compute r_2(X)
+// // Lagrange evaluations
 
-const pEval_l1: u16 = 1888;
+// const pEval_l1: u16 = 1888;
 
-const lastMem: u16 = 1920;
+// const lastMem: u16 = 1920;
 
 // abi MyContract {
 //     fn test_function() -> bool;
@@ -196,6 +196,15 @@ pub struct Challenges {
     pub xi_seed: u256,
     pub xi_seed2: u256,
     pub xi: u256,
+}
+
+pub struct Inverse_vars {
+    pub pZhInv: u256,
+    pub pDenH1: u256,
+    pub pDenH2: u256,
+    pub pLiS0Inv: [u256; 8],
+    pub pLiS1Inv: [u256;4],
+    pub pLiS2Inv: [u256;6],
 }
 
 pub fn check_field(v: Scalar) -> bool {
@@ -289,7 +298,7 @@ fn check_input(proof: Proof) -> bool {
 }
 
 
-// challenges = (alpha, beta, gamma, y)
+// challenges = (alpha, beta, gamma, y, xi_seed, xi_seed^2, xi)
 // roots is needed for later computations
 // last u256 is Z_H(xi)
 fn compute_challenges(proof: &Proof, pub_signals: u256) -> (Challenges, Roots, u256) {
@@ -437,7 +446,7 @@ fn compute_challenges(proof: &Proof, pub_signals: u256) -> (Challenges, Roots, u
     let power = 11;
     let mut i = 0;
     while i < power {
-        let xin = asm (rA: xin, rB: xin, rC: xin, rD: q) {
+        xin = asm (rA: xin, rB: xin, rC: xin, rD: q) {
             wqmm rA rB rC rD;
             rA: u256
         };
@@ -804,6 +813,274 @@ fn compute_li_s2(roots: Roots, challenges: Challenges) -> [u256; 6] {
 
     li_s2_inv
 }
+
+impl u256 {
+    fn addmod(self, other: u256) -> u256 {
+        let mut res: u256 = 0;
+        asm (rA: res, rB: self, rC: other, rD: q) {
+        wqam rA rB rC rD;
+        }
+        res
+    }
+
+    fn mulmod(self, other: u256) -> u256 {
+        let mut res: u256 = 0;
+        asm (rA: res, rB: self, rC: other, rD: q) {
+        wqmm rA rB rC rD;
+        }
+        res
+    }
+
+    fn submod(self, other: u256) -> u256 {
+        let mut res: u256 = q - other;
+        asm (rA: res, rB: self, rD: q) {
+        wqam rA rB rA rD;
+        }
+        res
+    }
+}
+
+
+// pZhInv, pDenH1, pDenH2, pLiS0Inv, pLiS1Inv, pLiS2Inv in order
+fn inverse_array(ref mut array: Inverse_vars, ref mut pEval_l1: u256, pEval_inv: u256) -> Inverse_vars{
+    
+    let mut res: [u256; 21] = [0; 21];
+    let mut acc = array.pZhInv;
+
+    // pZhInv
+    res[0] = acc;
+
+    // pDenH1
+    acc = acc.mulmod(array.pDenH1);
+    res[1] = acc;
+
+    // pDenH2
+    acc = acc.mulmod(array.pDenH2);
+    res[2] = acc;
+
+    // pLiS0Inv
+    acc = acc.mulmod(array.pLiS0Inv[0]);
+    res[3] = acc;
+
+    acc = acc.mulmod(array.pLiS0Inv[1]);
+    res[4] = acc;   
+    
+    acc = acc.mulmod(array.pLiS0Inv[2]);
+    res[5] = acc;
+
+    acc = acc.mulmod(array.pLiS0Inv[3]);
+    res[6] = acc;
+
+    acc = acc.mulmod(array.pLiS0Inv[4]);
+    res[7] = acc;
+
+    acc = acc.mulmod(array.pLiS0Inv[5]);
+    res[8] = acc;
+
+    acc = acc.mulmod(array.pLiS0Inv[6]);
+    res[9] = acc;
+
+    acc = acc.mulmod(array.pLiS0Inv[7]);
+    res[10] = acc;
+
+    // pLiS1Inv
+    acc = acc.mulmod(array.pLiS1Inv[0]);
+    res[11] = acc;
+
+    acc = acc.mulmod(array.pLiS1Inv[1]);
+    res[12] = acc;   
+    
+    acc = acc.mulmod(array.pLiS1Inv[2]);
+    res[13] = acc;
+
+    acc = acc.mulmod(array.pLiS1Inv[3]);
+    res[14] = acc;
+
+    // pLiS2Inv
+    acc = acc.mulmod(array.pLiS2Inv[0]);
+    res[15] = acc;
+
+    acc = acc.mulmod(array.pLiS2Inv[1]);
+    res[16] = acc;   
+    
+    acc = acc.mulmod(array.pLiS2Inv[2]);
+    res[17] = acc;
+
+    acc = acc.mulmod(array.pLiS2Inv[3]);
+    res[18] = acc;
+
+    acc = acc.mulmod(array.pLiS2Inv[4]);
+    res[19] = acc;
+
+    acc = acc.mulmod(array.pLiS2Inv[5]);
+    res[20] = acc;
+
+    let mut inv = pEval_inv;
+
+    // Before using the inverse sent by the prover the verifier checks inv(batch) * batch === 1
+    assert(acc == inv);
+
+    let mut acc = inv;
+    
+    inv = acc.mulmod(res[20]);
+    acc = acc.mulmod(pEval_l1);
+    pEval_l1 = acc;
+
+    inv = acc.mulmod(res[19]);
+    acc = acc.mulmod(array.pLiS2Inv[5]);
+    array.pLiS2Inv[5] = inv;
+
+    inv = acc.mulmod(res[18]);
+    acc = acc.mulmod(array.pLiS2Inv[4]);
+    array.pLiS2Inv[4] = inv;
+
+    inv = acc.mulmod(res[17]);
+    acc = acc.mulmod(array.pLiS2Inv[3]);
+    array.pLiS2Inv[3] = inv;
+
+    inv = acc.mulmod(res[16]);
+    acc = acc.mulmod(array.pLiS2Inv[2]);
+    array.pLiS2Inv[2] = inv;
+
+    inv = acc.mulmod(res[15]);
+    acc = acc.mulmod(array.pLiS2Inv[1]);
+    array.pLiS2Inv[1] = inv;
+
+    inv = acc.mulmod(res[14]);
+    acc = acc.mulmod(array.pLiS2Inv[0]);
+    array.pLiS2Inv[0] = inv;
+
+    inv = acc.mulmod(res[13]);
+    acc = acc.mulmod(array.pLiS1Inv[3]);
+    array.pLiS1Inv[3] = inv;
+
+    inv = acc.mulmod(res[12]);
+    acc = acc.mulmod(array.pLiS1Inv[2]);
+    array.pLiS1Inv[2] = inv;
+
+    inv = acc.mulmod(res[11]);
+    acc = acc.mulmod(array.pLiS1Inv[1]);
+    array.pLiS1Inv[1] = inv;
+
+    inv = acc.mulmod(res[10]);
+    acc = acc.mulmod(array.pLiS1Inv[0]);
+    array.pLiS1Inv[0] = inv;
+
+    inv = acc.mulmod(res[9]);
+    acc = acc.mulmod(array.pLiS0Inv[7]);
+    array.pLiS0Inv[7] = inv;
+
+    inv = acc.mulmod(res[8]);
+    acc = acc.mulmod(array.pLiS0Inv[6]);
+    array.pLiS0Inv[6] = inv;
+
+    inv = acc.mulmod(res[7]);
+    acc = acc.mulmod(array.pLiS0Inv[5]);
+    array.pLiS0Inv[5] = inv;
+
+    inv = acc.mulmod(res[6]);
+    acc = acc.mulmod(array.pLiS0Inv[4]);
+    array.pLiS0Inv[4] = inv;
+
+    inv = acc.mulmod(res[5]);
+    acc = acc.mulmod(array.pLiS0Inv[3]);
+    array.pLiS0Inv[3] = inv;
+
+    inv = acc.mulmod(res[4]);
+    acc = acc.mulmod(array.pLiS0Inv[2]);
+    array.pLiS0Inv[2] = inv;
+
+    inv = acc.mulmod(res[3]);
+    acc = acc.mulmod(array.pLiS0Inv[1]);
+    array.pLiS0Inv[1] = inv;
+
+    inv = acc.mulmod(res[2]);
+    acc = acc.mulmod(array.pLiS0Inv[0]);
+    array.pLiS0Inv[0] = inv;
+
+    inv = acc.mulmod(res[1]);
+    acc = acc.mulmod(array.pDenH2);
+    array.pDenH2 = inv;
+
+    inv = acc.mulmod(res[0]);
+    acc = acc.mulmod(array.pDenH1);
+    array.pDenH1 = inv;
+
+    array.pZhInv = inv;
+
+    array
+
+}
+
+fn compute_inversion(roots: Roots, challenges: Challenges, zh_inv: u256, eval_inv: u256)  -> Inverse_vars{
+
+    // 1/((y - h1) (y - h1w4) (y - h1w4_2) (y - h1w4_3))
+    let y = challenges.y;
+    let mut w: u256 = q - roots.s1_h1w4[0];
+    w = w.addmod(y);
+
+    let mut t = q - roots.s1_h1w4[1];
+    t = t.addmod(y);
+    w = w.mulmod(t);
+
+    let mut t = q - roots.s1_h1w4[2];
+    t = t.addmod(y);
+    w = w.mulmod(t);
+
+    let mut t = q - roots.s1_h1w4[3];
+    t = t.addmod(y);
+    w = w.mulmod(t);
+
+    let den_h1 = w;
+
+    // 1/((y - h2) (y - h2w3) (y - h2w3_2) (y - h3) (y - h3w3) (y - h3w3_2))
+    let mut w: u256 = q - roots.s2_h3w3[0];
+    w = w.addmod(y);
+
+    let mut t = q - roots.s2_h3w3[1];
+    t = t.addmod(y);
+    w = w.mulmod(t);
+
+    let mut t = q - roots.s2_h3w3[2];
+    t = t.addmod(y);
+    w = w.mulmod(t);
+
+    let mut t = q - roots.s2_h2w3[0];
+    t = t.addmod(y);
+    w = w.mulmod(t);
+
+    let mut t = q - roots.s2_h2w3[1];
+    t = t.addmod(y);
+    w = w.mulmod(t);
+
+    let mut t = q - roots.s2_h2w3[2];
+    t = t.addmod(y);
+    w = w.mulmod(t);
+
+    let den_h2 = w;
+
+    let li_s0_inv = compute_li_s0(roots, challenges);
+    let li_s1_inv = compute_li_s1(roots, challenges);
+    let li_s2_inv = compute_li_s2(roots, challenges);
+
+    let w: u256 = 1;
+    let xi = challenges.xi;
+
+    let t = xi.submod(w);
+    let mut eval_l1 = t.mulmod(u256::from(n));
+
+    let mut input: Inverse_vars = Inverse_vars {
+        pZhInv: zh_inv,
+        pDenH1: den_h1,
+        pDenH2: den_h2,
+        pLiS0Inv: li_s0_inv,
+        pLiS1Inv: li_s1_inv,
+        pLiS2Inv: li_s2_inv
+    };
+
+    inverse_array(input, eval_l1, eval_inv)
+}
+
 
 #[test]
 fn test_check_input() {
