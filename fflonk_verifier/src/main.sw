@@ -742,6 +742,7 @@ fn compute_li_s2(roots: Roots, challenges: Challenges) -> [u256; 6] {
     }
 
     let mut t3: u256 = q - t2;
+    t3 = t3.addmod(challenges.xi);
     let mut den1: u256 = 0;
 
     asm (rA: den1, rB: t1, rC: t3, rD: q) {
@@ -760,7 +761,7 @@ fn compute_li_s2(roots: Roots, challenges: Challenges) -> [u256; 6] {
         wqmm rA rB rC rE;
         wqmm rA rA rD rE;
     };
-
+    log(li_s2_inv[0]);
     // i = 1
     let mut den2: u256 = roots.s2_h2w3[2];
     let mut den3: u256 = q - roots.s2_h2w3[1]; 
@@ -1278,6 +1279,31 @@ fn test_compute_li_s1() {
 
     let mut i = 0;
     while i < 4 {
+        assert(res[i] == expected[i]);
+        i = i + 1;
+    }
+}
+
+
+#[test]
+fn test_compute_li_s2() {
+
+    let public_signal: u256 = 0x110d778eaf8b8ef7ac10f8ac239a14df0eb292a8d1b71340d527b26301a9ab08u256;
+    let (challenges, roots, _) = compute_challenges(&proof1, public_signal);
+
+    let res = compute_li_s2(roots, challenges);
+
+    let expected = [
+        0x278a4da82ca85851c76e3508830f61fd9240169c218a1d76fe1e11ec6b5836b4u256,
+        0x2f17a33bfdd0b0f38696b858099e86688711e33d63e3718f7f484410c230ad0du256,
+        0x0b679d57213c94866c6005024d6d6b9ddea7772c2b07a3da67c2bdc6073acdf3u256,
+        0x18a530b5dbc02a20326f57cd82da3049abd687a653e865fc1df5dab80971ed68u256,
+        0x1e34f44d5bf6a1283d958b250a582536c56dbf50399b058ed5f75e748b2d712eu256,
+        0x2446460dfaaa9855e8ba16dc60bb41020fb7db69597c0069713b02010d4fe251u256,
+    ];
+
+    let mut i = 0;
+    while i < 6 {
         assert(res[i] == expected[i]);
         i = i + 1;
     }
