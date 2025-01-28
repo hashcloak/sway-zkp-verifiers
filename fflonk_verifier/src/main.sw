@@ -671,9 +671,9 @@ fn compute_li_s1(roots: Roots, challenges: Challenges) -> [u256; 4] {
     let mut den1: u256 = 1;
     let four: u256 = 4;
     asm (rA: den1, rB: root0, rC: four, rE: q) {
-        wqam rA rA rB rE;
-        wqam rA rA rB rE;
-        wqam rA rA rC rE;
+        wqmm rA rA rB rE;
+        wqmm rA rA rB rE;
+        wqmm rA rA rC rE;
     }
 
     // i = 0
@@ -1256,6 +1256,28 @@ fn test_compute_li_s0() {
 
     let mut i = 0;
     while i < 8 {
+        assert(res[i] == expected[i]);
+        i = i + 1;
+    }
+}
+
+#[test]
+fn test_compute_li_s1() {
+
+    let public_signal: u256 = 0x110d778eaf8b8ef7ac10f8ac239a14df0eb292a8d1b71340d527b26301a9ab08u256;
+    let (challenges, roots, _) = compute_challenges(&proof1, public_signal);
+
+    let res = compute_li_s1(roots, challenges);
+
+    let expected = [
+        0x1e7a2cd2140dab225ac332b7ccf03512dca1eae4ec61d051d0464cbc237154d6u256,
+        0x0c085554438b47fde7fb779f5c4dae038992ab01ae707f31a065a3b4517f47bcu256,
+        0x1329660b6b25228b9a17e5df81c72c71cac62c965ebbe3ee51d84ebe715a8376u256,
+        0x259b3d893ba785b00cdfa0f7f269b3811dd56c799cad350e81b8f7c6434c9090u256,
+    ];
+
+    let mut i = 0;
+    while i < 4 {
         assert(res[i] == expected[i]);
         i = i + 1;
     }
