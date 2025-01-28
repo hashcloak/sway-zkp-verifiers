@@ -207,6 +207,32 @@ pub struct Inverse_vars {
     pub pLiS2Inv: [u256;6],
 }
 
+impl u256 {
+    fn addmod(self, other: u256) -> u256 {
+        let mut res: u256 = 0;
+        asm (rA: res, rB: self, rC: other, rD: q) {
+        wqam rA rB rC rD;
+        }
+        res
+    }
+
+    fn mulmod(self, other: u256) -> u256 {
+        let mut res: u256 = 0;
+        asm (rA: res, rB: self, rC: other, rD: q) {
+        wqmm rA rB rC rD;
+        }
+        res
+    }
+
+    fn submod(self, other: u256) -> u256 {
+        let mut res: u256 = q - other;
+        asm (rA: res, rB: self, rD: q) {
+        wqam rA rB rA rD;
+        }
+        res
+    }
+}
+
 pub fn check_field(v: Scalar) -> bool {
     v.x < q
 }
@@ -534,13 +560,13 @@ fn compute_li_s0(roots: Roots, challenges: Challenges) -> [u256; 8] {
         wqmm rA rA rC rD;
         wqmm rA rA rC rD;
         wqmm rA rE rA rD;
-    };
+    }
     
     // i = 0
     let mut den2: u256 = roots.s0_h0w8[0];
     let mut den3: u256 = q - roots.s0_h0w8[0];
 
-    asm (rA: den3, rC: challenges.y, rD: q) {
+    asm (rA: den3, rC: y, rD: q) {
         wqam rA rA rC rD;
     }
 
@@ -548,7 +574,7 @@ fn compute_li_s0(roots: Roots, challenges: Challenges) -> [u256; 8] {
         wqmm rA rB rC rE;
         wqmm rA rA rD rE;
     }
-
+    log(li_s0_inv[0]);
     // i = 1
     let mut den2: u256 = roots.s0_h0w8[7];
     let mut den3: u256 = q - roots.s0_h0w8[1]; 
@@ -814,31 +840,7 @@ fn compute_li_s2(roots: Roots, challenges: Challenges) -> [u256; 6] {
     li_s2_inv
 }
 
-impl u256 {
-    fn addmod(self, other: u256) -> u256 {
-        let mut res: u256 = 0;
-        asm (rA: res, rB: self, rC: other, rD: q) {
-        wqam rA rB rC rD;
-        }
-        res
-    }
 
-    fn mulmod(self, other: u256) -> u256 {
-        let mut res: u256 = 0;
-        asm (rA: res, rB: self, rC: other, rD: q) {
-        wqmm rA rB rC rD;
-        }
-        res
-    }
-
-    fn submod(self, other: u256) -> u256 {
-        let mut res: u256 = q - other;
-        asm (rA: res, rB: self, rD: q) {
-        wqam rA rB rA rD;
-        }
-        res
-    }
-}
 
 
 // pZhInv, pDenH1, pDenH2, pLiS0Inv, pLiS1Inv, pLiS2Inv in order
@@ -1081,11 +1083,10 @@ fn compute_inversion(roots: Roots, challenges: Challenges, zh_inv: u256, eval_in
     inverse_array(input, eval_l1, eval_inv)
 }
 
-
-#[test]
-fn test_check_input() {
-    let proof: Proof = Proof{
-        C1: G1Point {
+// ONLY FOR TESTING
+// so that we dont have to copy everytime in testing
+const proof1: Proof = Proof{
+    C1: G1Point {
             x: 0x221ad660d2575bbc12cd0f0e749a9456ecdec9a3b6cc3bbc94c03eb9232e3effu256, 
             y: 0x126bee477fc98c7cefe0e54f2ef51d03fc2358e604c57cb37c2673b2dddd101eu256,
         },
@@ -1149,87 +1150,20 @@ fn test_check_input() {
         batch_inv: Scalar {
             x: 0x2172803eac8862f41ccc20cc1854cb1e4ec4327c8f3e791863dcd4a7eef0fb69u256,
         },
+};
 
-    };
-
+#[test]
+fn test_check_input() {
     let _public_signal: u256 = 0x110d778eaf8b8ef7ac10f8ac239a14df0eb292a8d1b71340d527b26301a9ab08u256;
-
-    assert(check_input(proof) == true);
+    assert(check_input(proof1) == true);
 }
 
 #[test]
 fn test_challenge() {
-    let proof: Proof = Proof{
-        C1: G1Point {
-            x: 0x221ad660d2575bbc12cd0f0e749a9456ecdec9a3b6cc3bbc94c03eb9232e3effu256, 
-            y: 0x126bee477fc98c7cefe0e54f2ef51d03fc2358e604c57cb37c2673b2dddd101eu256,
-        },
-        C2: G1Point {
-            x: 0x2f9f3ec75b8f81f765c9fb6eeb31fa1ca1b3204df38a2ff2bb22c46fbd9ff915u256,
-            y: 0x2c7490abf30fb34d888cf1097be1af1377ec60cca19e57b4da3aa47d2d75dcf5u256,
-        },
-        W: G1Point {
-            x: 0x1a5e23a437fa68b2ad59e2b67b7f32a06a761459a437a3a54ef23a5f237d95c7u256,
-            y: 0x1211244f2addbb44a84ce4c774838690eedf20685b1fbf6a7544edecf41e1bbdu256,
-        },
-        W_dash: G1Point {
-            x: 0x2f03ca7d95fe7908a1eee49bfc707bdb5a9efe3e6b466c8c996c917fc30b3de5u256,
-            y: 0x019cf3081794350aede6c4691f0a61501d94dc2adbc8949c74659d67cb841163u256,
-        },
-        q_L: Scalar{
-            x: 0x067125bdbc6964248b3e1fd02bdb7670a4733b25987cbaeb8ab9199320bb3b6du256,
-        },
-        q_R: Scalar {
-            x: 0x23b69ef5466622623aea51b17c324e55a8f1e20b1572c6ba1fc9956db2bb8689u256,
-        },
-        q_M: Scalar {
-            x: 0x0c542266f24f61387b34d6de59685c1325be0a39a908a79c7e39bf0b3c0d14e2u256,
-        },
-        q_O: Scalar {
-            x: 0x2a51432f583fa236dc9cd7c3cf6b9915d8912fe2cbf8155694f1ed756b26abf7u256,
-        },
-        q_C: Scalar {
-            x: 0x0000000000000000000000000000000000000000000000000000000000000000u256,
-        },
-        S_sigma_1: Scalar {
-            x: 0x1ba150613d8b5bbba067f34c174b5d678d8c4ecd9dc4a75692e29a29fafe8c61u256,
-        },
-        S_sigma_2: Scalar {
-            x: 0x20643c6dc3eec0f68103d94efd913aa1d0558d49df70ef95b65d62ddf864615fu256,
-        },
-        S_sigma_3: Scalar {
-            x: 0x199ddc60fd5b390ceba8d2bb54967a8b78e063ef42d14bbe18b39656a6c39139u256,
-        },
-        a: Scalar {
-            x: 0x1aece3ec4efb852d417f02d6722912e0fa228b7815d570e859019fdd456d4794u256,
-        },
-        b: Scalar {
-            x: 0x0015ec5fef99ea0e8e3641abc74892482e7fac7a916be4067d6e101165e891efu256,
-        },
-        c: Scalar {
-            x: 0x0237611fbb1cdc29a4e565219cc727497c09b25a2e2076b03ef491d107324552u256,
-        },
-        z: Scalar {
-            x: 0x034348c3e8d591329f37054ac4a8e3ec56d75d5a821ad95833e59363e3687a17u256,
-        },
-        z_omega: Scalar {
-            x: 0x30085eec676c53ce01951a1f9b5c67662cbdccc13d2ab180c6170cee7249f2e6u256,
-        },
-        T_1_omega: Scalar {
-            x: 0x03e64174dcca0d13a4c765a3ea9e8107109f98151e24eef9df8ddaeb849e125au256,
-        },
-        T_2_omega: Scalar {
-            x: 0x0ef990764d5a526d52fb17836be9502b36c4d59e644829e20762829f12556be9u256,
-        },
-        batch_inv: Scalar {
-            x: 0x2172803eac8862f41ccc20cc1854cb1e4ec4327c8f3e791863dcd4a7eef0fb69u256,
-        },
-
-    };
 
     let public_signal: u256 = 0x110d778eaf8b8ef7ac10f8ac239a14df0eb292a8d1b71340d527b26301a9ab08u256;
 
-    let (challenge, _, _) = compute_challenges(&proof, public_signal);
+    let (challenge, _, _) = compute_challenges(&proof1, public_signal);
     let expected_beta: u256 = 0x020021ade096c7681a001bf89e1b6b078614be20ed11df702729e254cc4276b7u256;
 
     let beta = challenge.beta;
@@ -1253,4 +1187,76 @@ fn test_challenge() {
     let expected_xi: u256 = 0x11fdb4ddc0b2765f1d8cbfc856e9bffdff2cf134d37901c09dad275aa56684f7u256;
     let xi = challenge.xi;
     assert(xi == expected_xi);
+}
+
+#[test]
+fn test_compute_li_s0() {
+
+    let public_signal: u256 = 0x110d778eaf8b8ef7ac10f8ac239a14df0eb292a8d1b71340d527b26301a9ab08u256;
+    let (challenges, roots, zh) = compute_challenges(&proof1, public_signal);
+
+    let expected_h0_w8_0 = 0x187355a96fcb8745237e92eb0ef7baa42241dd1e30ef9f671e57fd9acde6969cu256;
+    let expected_h0_w8_1 = 0x243eef9bc893a36be21202391a8a54bb9b3fdca5d3ad60c8c0e7021496d7f05au256;
+    let expected_h0_w8_2 = 0x182bd2fe1e6d0eb0adc4dddd7a6d9cfe8d1180447ec5175cc66387a72baeb6a2u256;
+    let expected_h0_w8_3 = 0x285ee8f54f601c394f5088df086e40c01f517b57bb8b476b4a291391131555ceu256;
+    let expected_h0_w8_4 = 0x17f0f8c9716618e494d1b2cb72899db905f20b2a48c9d12a2589f7f922196965u256;
+    let expected_h0_w8_5 = 0x0c255ed7189dfcbdd63e437d66f703a18cf40ba2a60c0fc882faf37f59280fa7u256;
+    let expected_h0_w8_6 = 0x18387b74c2c491790a8b67d90713bb5e9b226803faf459347d7e6decc451495fu256;
+    let expected_h0_w8_7 = 0x0805657d91d183f068ffbcd77913179d08e26cf0be2e2925f9b8e202dceaaa33u256;
+
+    let expected_h1_w4_0 = 0x1a0a8f74abcb1e36f07b004ff1ea3eeb88d38b2582dd14d99d5f2bc93ae2e690u256;
+    let expected_h1_w4_1 = 0x208b0e4e4e155248fd60f8fea9479862fb94ec1ab164adfc750abc987a9e134eu256;
+    let expected_h1_w4_2 = 0x1659befe356681f2c7d545668f9719719f605d22f6dc5bb7a682c9cab51d1971u256;
+    let expected_h1_w4_3 = 0x0fd94024931c4de0baef4cb7d839bffa2c9efc2dc854c294ced738fb7561ecb3u256;
+
+    let expected_h2_w3_0 = 0x03e34fdfcc73dec03a4e013b26da81485181bc4224eb565645e5ba678384782bu256;
+    let expected_h2_w3_1 = 0x082ee53f1b7990e85b2247dd25640b5eb2c769297bd7822c6dfb7dab28515087u256;
+    let expected_h2_w3_2 = 0x24521953f944308122dffc9e3542cbb623eac2dcd8f6980e9000bd81442a374fu256;
+
+    let expected_h3_w3_0 = 0x27fcf8700b88d29603e60d12b217678e676189c1904bab953eb8cbac195175b0u256;
+    let expected_h3_w3_1 = 0x1cb22abc3928a326e4d7dea3693611e6b727fa1bb93ea76d3495069e8ab73dcdu256;
+    let expected_h3_w3_2 = 0x1c1979b97db1ca9687e29fb6e7b5374531de4cb3a9e88e20147618dd3bf74c85u256;
+
+
+    assert(expected_h0_w8_0 == roots.s0_h0w8[0]);
+    assert(expected_h0_w8_1 == roots.s0_h0w8[1]);
+    assert(expected_h0_w8_2 == roots.s0_h0w8[2]);
+    assert(expected_h0_w8_3 == roots.s0_h0w8[3]);
+    assert(expected_h0_w8_4 == roots.s0_h0w8[4]);
+    assert(expected_h0_w8_5 == roots.s0_h0w8[5]);
+    assert(expected_h0_w8_6 == roots.s0_h0w8[6]);
+    assert(expected_h0_w8_7 == roots.s0_h0w8[7]);
+
+    assert(expected_h1_w4_0 == roots.s1_h1w4[0]);
+    assert(expected_h1_w4_1 == roots.s1_h1w4[1]);
+    assert(expected_h1_w4_2 == roots.s1_h1w4[2]);
+    assert(expected_h1_w4_3 == roots.s1_h1w4[3]);
+
+    assert(expected_h2_w3_0 == roots.s2_h2w3[0]);
+    assert(expected_h2_w3_1 == roots.s2_h2w3[1]);
+    assert(expected_h2_w3_2 == roots.s2_h2w3[2]);
+
+    assert(expected_h3_w3_0 == roots.s2_h3w3[0]);
+    assert(expected_h3_w3_1 == roots.s2_h3w3[1]);
+    assert(expected_h3_w3_2 == roots.s2_h3w3[2]);  
+
+    let res = compute_li_s0(roots, challenges);
+
+    let expected = [
+        0x1c6d2ee71c71526fec4bcb8e819869854ece270679d14f1ab256d713f6ac1737u256,
+        0x0f2a91afffc699ef46a96123d1b01ed6b0438a6a3f286c4be7ae2bdac85d7686u256,
+        0x075d22d72ea2b07cc459fd0e5d402fbd77eda32f1ded39e28a6a22a2d874bf52u256,
+        0x03ebb0ea80a098fe5c9e12715507930dd9395cb551da9e5d985174d3e45d48c5u256,
+        0x1675a86100c2a8c2451a1fe99a550126d7ce1fa7a2b0a8d44e046a4d42eb9960u256,
+        0x23b845981d6d6142eabc8a544a3d4bd57658bc43dd598ba318ad1586713a3a11u256,
+        0x2b85b470ee914ab56d0bee69bead3aeeaeaea37efe94be0c75f11ebe6122f145u256,
+        0x2ef7265d9c936233d4c7d906c6e5d79e4d62e9f8caa759916809cc8d553a67d2u256,
+
+    ];
+
+    let mut i = 0;
+    while i < 8 {
+        assert(res[i] == expected[i]);
+        i = i + 1;
+    }
 }
