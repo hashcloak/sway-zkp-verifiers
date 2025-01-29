@@ -212,7 +212,7 @@ impl u256 {
         let mut res: u256 = 0;
         asm (rA: res, rB: self, rC: other, rD: q) {
         wqam rA rB rC rD;
-        }
+        };
         res
     }
 
@@ -574,7 +574,7 @@ fn compute_li_s0(roots: Roots, challenges: Challenges) -> [u256; 8] {
         wqmm rA rB rC rE;
         wqmm rA rA rD rE;
     }
-    log(li_s0_inv[0]);
+
     // i = 1
     let mut den2: u256 = roots.s0_h0w8[7];
     let mut den3: u256 = q - roots.s0_h0w8[1]; 
@@ -761,7 +761,7 @@ fn compute_li_s2(roots: Roots, challenges: Challenges) -> [u256; 6] {
         wqmm rA rB rC rE;
         wqmm rA rA rD rE;
     };
-    log(li_s2_inv[0]);
+
     // i = 1
     let mut den2: u256 = roots.s2_h2w3[2];
     let mut den3: u256 = q - roots.s2_h2w3[1]; 
@@ -845,7 +845,7 @@ fn compute_li_s2(roots: Roots, challenges: Challenges) -> [u256; 6] {
 
 
 // pZhInv, pDenH1, pDenH2, pLiS0Inv, pLiS1Inv, pLiS2Inv in order
-fn inverse_array(ref mut array: Inverse_vars, ref mut pEval_l1: u256, pEval_inv: u256) -> Inverse_vars{
+fn inverse_array(ref mut array: Inverse_vars, ref mut pEval_l1: u256, pEval_inv: u256) -> (Inverse_vars, u256){
     
     let mut res: [u256; 21] = [0; 21];
     let mut acc = array.pZhInv;
@@ -920,6 +920,7 @@ fn inverse_array(ref mut array: Inverse_vars, ref mut pEval_l1: u256, pEval_inv:
 
     let mut inv = pEval_inv;
 
+    //TODO: uncomment
     // Before using the inverse sent by the prover the verifier checks inv(batch) * batch === 1
     assert(acc == inv);
 
@@ -1011,11 +1012,12 @@ fn inverse_array(ref mut array: Inverse_vars, ref mut pEval_l1: u256, pEval_inv:
 
     array.pZhInv = inv;
 
-    array
+    (array, pEval_l1)
 
 }
 
-fn compute_inversion(roots: Roots, challenges: Challenges, zh_inv: u256, eval_inv: u256)  -> Inverse_vars{
+// fn compute_inversion(roots: Roots, challenges: Challenges, zh_inv: u256, eval_inv: u256)  -> (Inverse_vars, u256){
+fn compute_inversion(roots: Roots, challenges: Challenges, zh_inv: u256, eval_inv: u256)  -> (u256, u256, u256){
 
     // 1/((y - h1) (y - h1w4) (y - h1w4_2) (y - h1w4_3))
     let y = challenges.y;
@@ -1081,7 +1083,8 @@ fn compute_inversion(roots: Roots, challenges: Challenges, zh_inv: u256, eval_in
         pLiS2Inv: li_s2_inv
     };
 
-    inverse_array(input, eval_l1, eval_inv)
+    // inverse_array(input, eval_l1, eval_inv)
+    (den_h1, den_h2, eval_l1)
 }
 
 // ONLY FOR TESTING
@@ -1194,7 +1197,7 @@ fn test_challenge() {
 fn test_compute_li_s0() {
 
     let public_signal: u256 = 0x110d778eaf8b8ef7ac10f8ac239a14df0eb292a8d1b71340d527b26301a9ab08u256;
-    let (challenges, roots, zh) = compute_challenges(&proof1, public_signal);
+    let (challenges, roots, _) = compute_challenges(&proof1, public_signal);
 
     let expected_h0_w8_0 = 0x187355a96fcb8745237e92eb0ef7baa42241dd1e30ef9f671e57fd9acde6969cu256;
     let expected_h0_w8_1 = 0x243eef9bc893a36be21202391a8a54bb9b3fdca5d3ad60c8c0e7021496d7f05au256;
@@ -1307,4 +1310,36 @@ fn test_compute_li_s2() {
         assert(res[i] == expected[i]);
         i = i + 1;
     }
+}
+
+#[test]
+fn test_compute_inversion() {
+
+    let public_signal: u256 = 0x110d778eaf8b8ef7ac10f8ac239a14df0eb292a8d1b71340d527b26301a9ab08u256;
+    let (challenges, roots, zh) = compute_challenges(&proof1, public_signal);
+
+    //zh is store in zhinv for inverse computation
+    let (denh1,  denh2, eval_l1)= compute_inversion(roots, challenges, zh, proof1.batch_inv.x);
+
+    let expected_pDenH1 = 0x0cb4b66615150cef834dd66e874a8edd9b6c191786051dba8bc2ae313cd46a94u256;
+    let expected_pDenH2 = 0x1814c352e70920cbfa500b8e258ee80b56baecd8e6253e6ab16242413222a906u256;
+    let expected_pEval_l1 = 0x1379ba86272ddce77f5f07305480430ce53c2729efce651a9e87d066c427ad07u256;
+
+    assert(denh1 == expected_pDenH1);
+    assert(denh2 == expected_pDenH2);
+    assert(eval_l1 == expected_pEval_l1);
+    
+}
+
+
+#[test]
+fn test_u256_mod() {
+    let x = 0x0cb4b66615150cef834dd66e874a8edd9b6c191786051dba8bc2ae313cd46a94u256;
+    let y = 0x1814c352e70920cbfa500b8e258ee80b56baecd8e6253e6ab16242413222a906u256;
+    let sum = x.addmod(y);
+    let mul = x.mulmod(y);
+    let sub = x.submod(y);
+    assert(sum == 0x24C979B8FC1E2DBB7D9DE1FCACD976E8F22705F06C2A5C253D24F0726EF7139Au256);
+    assert(mul == 0x14DB664E0FF45A13EAB40C763AA64F8FADAA56B57A8BD1948EBC21150D96815Du256);
+    assert(sub == 0x250441860F3D8C4D414E1096E33CFF2F6CE5148719994FE11E426183FAB1C18Fu256);
 }
