@@ -1033,8 +1033,7 @@ fn inverse_array(ref mut array: Inverse_vars, ref mut pEval_l1: u256, pEval_inv:
 
 }
 
-// fn compute_inversion(roots: Roots, challenges: Challenges, zh_inv: u256, eval_inv: u256)  -> (Inverse_vars, u256){
-fn compute_inversion(roots: Roots, challenges: Challenges, zh_inv: u256, eval_inv: u256)  -> (u256, u256, u256){
+fn compute_inversion(roots: Roots, challenges: Challenges, zh_inv: u256, eval_inv: u256)  -> (Inverse_vars, u256){
 
     // 1/((y - h1) (y - h1w4) (y - h1w4_2) (y - h1w4_3))
     let y = challenges.y;
@@ -1100,8 +1099,7 @@ fn compute_inversion(roots: Roots, challenges: Challenges, zh_inv: u256, eval_in
         pLiS2Inv: li_s2_inv
     };
 
-    // inverse_array(input, eval_l1, eval_inv)
-    (den_h1, den_h2, eval_l1)
+    inverse_array(input, eval_l1, eval_inv)
 }
 
 // ONLY FOR TESTING
@@ -1336,15 +1334,15 @@ fn test_compute_inversion() {
     let (challenges, roots, zh) = compute_challenges(&proof1, public_signal);
 
     //zh is store in zhinv for inverse computation
-    let (denh1,  denh2, eval_l1)= compute_inversion(roots, challenges, zh, proof1.batch_inv.x);
+    let (inverse_val, pEval_l1)= compute_inversion(roots, challenges, zh, proof1.batch_inv.x);
 
-    let expected_pDenH1 = 0x0cb4b66615150cef834dd66e874a8edd9b6c191786051dba8bc2ae313cd46a94u256;
-    let expected_pDenH2 = 0x1814c352e70920cbfa500b8e258ee80b56baecd8e6253e6ab16242413222a906u256;
-    let expected_pEval_l1 = 0x1379ba86272ddce77f5f07305480430ce53c2729efce651a9e87d066c427ad07u256;
+    let expected_pDenH1 = 0x15ab61875d3945bbc9392b0354a9abfb40452f34a7fca0d1ccd0a7a8ff901a7cu256;
+    let expected_pDenH2 = 0x0a76ee4974ad4ef57e0da374ff210416832ba953383594252e6e5e06dc22e110u256;
+    let expected_zh_inv = 0x05f6cddef83e0436c0f841b938d13576be0f744a7586ce09c975b8566cabd5dcu256;
 
-    assert(denh1 == expected_pDenH1);
-    assert(denh2 == expected_pDenH2);
-    assert(eval_l1 == expected_pEval_l1);
+    assert(inverse_val.pDenH1 == expected_pDenH1);
+    assert(inverse_val.pDenH2 == expected_pDenH2);
+    assert(inverse_val.pZhInv == expected_zh_inv);
     
 }
 
