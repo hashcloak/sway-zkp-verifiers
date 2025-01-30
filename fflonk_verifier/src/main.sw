@@ -847,7 +847,7 @@ fn compute_li_s2(roots: Roots, challenges: Challenges) -> [u256; 6] {
 // pZhInv, pDenH1, pDenH2, pLiS0Inv, pLiS1Inv, pLiS2Inv in order
 fn inverse_array(ref mut array: Inverse_vars, ref mut pEval_l1: u256, pEval_inv: u256) -> (Inverse_vars, u256){
     
-    let mut res: [u256; 21] = [0; 21];
+    let mut res: [u256; 22] = [0; 22];
     let mut acc = array.pZhInv;
 
     // pZhInv
@@ -861,9 +861,13 @@ fn inverse_array(ref mut array: Inverse_vars, ref mut pEval_l1: u256, pEval_inv:
     acc = acc.mulmod(array.pDenH2);
     res[2] = acc;
 
+
+
     // pLiS0Inv
     acc = acc.mulmod(array.pLiS0Inv[0]);
     res[3] = acc;
+
+
 
     acc = acc.mulmod(array.pLiS0Inv[1]);
     res[4] = acc;   
@@ -889,6 +893,7 @@ fn inverse_array(ref mut array: Inverse_vars, ref mut pEval_l1: u256, pEval_inv:
     // pLiS1Inv
     acc = acc.mulmod(array.pLiS1Inv[0]);
     res[11] = acc;
+
 
     acc = acc.mulmod(array.pLiS1Inv[1]);
     res[12] = acc;   
@@ -918,17 +923,26 @@ fn inverse_array(ref mut array: Inverse_vars, ref mut pEval_l1: u256, pEval_inv:
     acc = acc.mulmod(array.pLiS2Inv[5]);
     res[20] = acc;
 
+
+    acc = acc.mulmod(pEval_l1);
+    res[21] = acc;
+
+    
     let mut inv = pEval_inv;
 
-    //TODO: uncomment
     // Before using the inverse sent by the prover the verifier checks inv(batch) * batch === 1
-    assert(acc == inv);
+    assert(acc.mulmod(inv) == 1);
 
-    let mut acc = inv;
+    acc = inv;
     
     inv = acc.mulmod(res[20]);
+
+    log(res[19]);
+    assert(res[19] == 0x287b50a35c0a42df4a9c99e28779cd779d617300f74a45cb441f2d90a1e57ec5u256);
+
+
     acc = acc.mulmod(pEval_l1);
-    pEval_l1 = acc;
+    pEval_l1 = inv;
 
     inv = acc.mulmod(res[19]);
     acc = acc.mulmod(array.pLiS2Inv[5]);
@@ -1010,7 +1024,10 @@ fn inverse_array(ref mut array: Inverse_vars, ref mut pEval_l1: u256, pEval_inv:
     acc = acc.mulmod(array.pDenH1);
     array.pDenH1 = inv;
 
-    array.pZhInv = inv;
+    // inv = acc.mulmod(res[0]);
+    array.pZhInv = acc;
+
+    // array.pZhInv = inv;
 
     (array, pEval_l1)
 
@@ -1331,6 +1348,48 @@ fn test_compute_inversion() {
     
 }
 
+
+#[test]
+fn test_inverse_array() {
+
+    let public_signal: u256 = 0x110d778eaf8b8ef7ac10f8ac239a14df0eb292a8d1b71340d527b26301a9ab08u256;
+    let (challenges, roots, zh) = compute_challenges(&proof1, public_signal);
+
+    let li_s0_inv = compute_li_s0(roots, challenges);
+    let li_s1_inv = compute_li_s1(roots, challenges);
+    let li_s2_inv = compute_li_s2(roots, challenges);
+
+    let zhinv = 0x01598f1579591cfff18429ff3414deaa93eea4ac3d2d35c5baa01dfcd641410bu256;
+
+    assert(zhinv == zh);
+
+    let mut input: Inverse_vars = Inverse_vars {
+        pZhInv: zhinv,
+        pDenH1: 0x0cb4b66615150cef834dd66e874a8edd9b6c191786051dba8bc2ae313cd46a94u256,
+        pDenH2: 0x1814c352e70920cbfa500b8e258ee80b56baecd8e6253e6ab16242413222a906u256,
+        pLiS0Inv: li_s0_inv,
+        pLiS1Inv: li_s1_inv,
+        pLiS2Inv: li_s2_inv
+    };
+    let mut pEval_l1 = 0x1379ba86272ddce77f5f07305480430ce53c2729efce651a9e87d066c427ad07u256;
+    //zh is store in zhinv for inverse computation
+    let (inverse_vars,  pEval_l1)= inverse_array(input, pEval_l1, proof1.batch_inv.x);
+
+    let expected_pDenH1 = 0x15ab61875d3945bbc9392b0354a9abfb40452f34a7fca0d1ccd0a7a8ff901a7cu256;
+    let expected_pDenH2 = 0x0a76ee4974ad4ef57e0da374ff210416832ba953383594252e6e5e06dc22e110u256;
+    let expected_zhInv = 0x05f6cddef83e0436c0f841b938d13576be0f744a7586ce09c975b8566cabd5dcu256;
+    let expected_pEval_l1 = 0x1b35d84010cc45c98684149a7b2f550e506c345cfe3cd45644e27f9ac592fc63u256;
+    let expected_li_s2_inv5 = 0x21c42d1f2ff09bec348936690cf6262eb7a91d7fcbf668afdfe3627d1b510470u256;
+    let expected_li_s2inv5_before = 0x2446460dfaaa9855e8ba16dc60bb41020fb7db69597c0069713b02010d4fe251u256;
+
+    assert(li_s2_inv[5] == expected_li_s2inv5_before);
+    assert(pEval_l1 == expected_pEval_l1);
+    assert(inverse_vars.pLiS2Inv[5] == expected_li_s2_inv5);
+    assert(inverse_vars.pZhInv == expected_zhInv);
+    assert(inverse_vars.pDenH1 == expected_pDenH1);
+    assert(inverse_vars.pDenH2 == expected_pDenH2);
+
+}
 
 #[test]
 fn test_u256_mod() {
