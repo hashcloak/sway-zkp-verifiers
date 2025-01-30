@@ -11,6 +11,10 @@ use std::bytes_conversions::u256::*;
 // the above contract is generated using snarkjs 
 // the file is taken as a reference as of now
 
+//TODO: needs to be generated dynamically
+const nPublic = 1;
+
+
 const ZERO: u256 = 0;
 // TODO: These parameters needs to be generated per contract
 const n: u32 = 2048; // Domain size
@@ -1102,6 +1106,31 @@ fn compute_inversion(roots: Roots, challenges: Challenges, zh_inv: u256, eval_in
     inverse_array(input, eval_l1, eval_inv)
 }
 
+//TODO
+// instead of pEval: [u256; 1] it will be [u256;max(nPublic, 1)]
+fn compute_lagrange(zh: u256, ref mut pEval: [u256; 1]) -> [u256;1]{
+    let mut w: u256 = 1;
+
+    let mut i: u64 = 1;
+    while (i <= u64::max(nPublic, 1)) {
+        if i == 1 {
+            pEval[0] = pEval[0].mulmod(zh);
+        }
+
+        else {
+            pEval[i - 1] = w.mulmod(pEval[i - 1].mulmod(zh))
+        }
+
+        if i < u64::max(nPublic, 1) {
+            w = w.mulmod(w1);
+        }
+
+        i = i + 1;
+    }
+
+    pEval
+}
+
 // ONLY FOR TESTING
 // so that we dont have to copy everytime in testing
 const proof1: Proof = Proof{
@@ -1399,4 +1428,16 @@ fn test_u256_mod() {
     assert(sum == 0x24C979B8FC1E2DBB7D9DE1FCACD976E8F22705F06C2A5C253D24F0726EF7139Au256);
     assert(mul == 0x14DB664E0FF45A13EAB40C763AA64F8FADAA56B57A8BD1948EBC21150D96815Du256);
     assert(sub == 0x250441860F3D8C4D414E1096E33CFF2F6CE5148719994FE11E426183FAB1C18Fu256);
+}
+
+#[test]
+fn test_lagrange() {
+    let zh = 0x01598f1579591cfff18429ff3414deaa93eea4ac3d2d35c5baa01dfcd641410bu256;
+    let mut pEval_l1: [u256;1] = [0x1b35d84010cc45c98684149a7b2f550e506c345cfe3cd45644e27f9ac592fc63u256];
+
+    let expected_output_eval_l1 = 0x2a27c4b302cf8686c6287181a80dc4c64d651d30adef81a5aa82af00d376c1f6u256;
+
+    let output_eval_l1 = compute_lagrange(zh, pEval_l1);
+
+    assert(expected_output_eval_l1 == output_eval_l1[0]);
 }
