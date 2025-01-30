@@ -1131,6 +1131,24 @@ fn compute_lagrange(zh: u256, ref mut pEval: [u256; 1]) -> [u256;1]{
     pEval
 }
 
+//TODO
+// instead of pEval: [u256; 1] it will be [u256;max(nPublic, 1)]
+// same for pPub
+fn compute_pi(pEval: [u256;1], p_pub: [u256;1]) -> u256{
+    let mut pi: u256 = 0;
+    pi = pi.submod(pEval[0].mulmod(p_pub[0]));
+
+    let mut i = 1;
+    while i < nPublic {
+        pi = pi.submod(pEval[i].mulmod(p_pub[i]));
+
+        i = i + 1;
+    }
+
+    pi
+}
+
+
 // ONLY FOR TESTING
 // so that we dont have to copy everytime in testing
 const proof1: Proof = Proof{
@@ -1440,4 +1458,15 @@ fn test_lagrange() {
     let output_eval_l1 = compute_lagrange(zh, pEval_l1);
 
     assert(expected_output_eval_l1 == output_eval_l1[0]);
+}
+
+#[test]
+fn test_compute_pi() {
+    let pEval: [u256;1] = [0x2a27c4b302cf8686c6287181a80dc4c64d651d30adef81a5aa82af00d376c1f6u256];
+    let pPub: [u256;1] = [0x110d778eaf8b8ef7ac10f8ac239a14df0eb292a8d1b71340d527b26301a9ab08u256];
+
+    let expected_pi = 0x080a0e10ddb090705b01961e4d7237f5db4357e256601f403dfd94bf06fe5b38u256;
+
+    let pi = compute_pi(pEval, pPub);
+    assert(pi == expected_pi);
 }
