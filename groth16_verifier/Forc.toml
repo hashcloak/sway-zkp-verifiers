@@ -1,0 +1,10 @@
+[project]
+authors = ["Alex Liao"]
+entry = "main.sw"
+license = "Apache-2.0"
+name = "sway-groth16-verifier"
+
+[dependencies]
+std = { git = "https://github.com/FuelLabs/sway", rev = "c681835d4427b8c36d9f340c8d4340aaa03591e6" }
+core = { git = "https://github.com/FuelLabs/sway", rev = "c681835d4427b8c36d9f340c8d4340aaa03591e6" }
+sway-ecc = { git = "https://github.com/hashcloak/sway-ecc", rev = "6bbd3074c2500e12d2dbe7b0adcc9861ff7b1b9f" }
