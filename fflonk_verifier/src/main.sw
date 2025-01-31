@@ -1148,6 +1148,53 @@ fn compute_pi(pEval: [u256;1], p_pub: [u256;1]) -> u256{
     pi
 }
 
+fn compute_r0(challenge: Challenges, roots: Roots, proof: Proof, inverse_vars: Inverse_vars) -> u256{
+    
+    let mut num: u256 = 1;
+    let y = challenge.y;
+
+    num = num.mulmod(y);
+    num = num.mulmod(y);
+    num = num.mulmod(y);
+    num = num.mulmod(y);
+    num = num.mulmod(y);
+    num = num.mulmod(y);
+    num = num.mulmod(y);
+    num = num.mulmod(y); 
+
+    num = num.addmod(0x00u256.submod(challenge.xi));
+
+    let mut res: u256 = 0;
+    let mut h0w80: u256 = 0;
+    let mut c0_value: u256 = 0;
+    let mut h0w8i: u256 = 0;
+
+    let mut i = 0;
+    while i < 8 {
+        h0w80 = roots.s0_h0w8[i];
+        c0_value = proof.q_L.x.addmod(proof.q_R.x.mulmod(h0w80));
+        h0w8i = h0w80.mulmod(h0w80);
+        c0_value = c0_value.addmod(proof.q_O.x.mulmod(h0w8i));
+        h0w8i = h0w8i.mulmod(h0w80);
+        c0_value = c0_value.addmod(proof.q_M.x.mulmod(h0w8i));
+        h0w8i = h0w8i.mulmod(h0w80);
+        c0_value = c0_value.addmod(proof.q_C.x.mulmod(h0w8i));
+        h0w8i = h0w8i.mulmod(h0w80);
+        c0_value = c0_value.addmod(proof.S_sigma_1.x.mulmod(h0w8i));
+        h0w8i = h0w8i.mulmod(h0w80);
+        c0_value = c0_value.addmod(proof.S_sigma_2.x.mulmod(h0w8i));
+        h0w8i = h0w8i.mulmod(h0w80);
+        c0_value = c0_value.addmod(proof.S_sigma_3.x.mulmod(h0w8i));
+        h0w8i = h0w8i.mulmod(h0w80);
+
+        res = res.addmod(c0_value.mulmod(num.mulmod(inverse_vars.pLiS0Inv[i])));
+
+        i = i + 1;
+    }
+
+    res
+
+}
 
 // ONLY FOR TESTING
 // so that we dont have to copy everytime in testing
@@ -1469,4 +1516,16 @@ fn test_compute_pi() {
 
     let pi = compute_pi(pEval, pPub);
     assert(pi == expected_pi);
+}
+
+#[test]
+fn test_compute_r0() {
+    let public_signal: u256 = 0x110d778eaf8b8ef7ac10f8ac239a14df0eb292a8d1b71340d527b26301a9ab08u256;
+    let (challenges, roots, zh) = compute_challenges(&proof1, public_signal);
+
+    //zh is store in zhinv for inverse computation
+    let (inverse_val, pEval_l1)= compute_inversion(roots, challenges, zh, proof1.batch_inv.x);
+
+    let res = compute_r0(challenges, roots, proof1, inverse_val);
+    assert(res == 0x20fdff466630d3c9fa173a8092cbc6764f7b2ede317d0d8cd67b86da4398418au256);
 }
