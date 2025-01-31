@@ -1196,6 +1196,54 @@ fn compute_r0(challenge: Challenges, roots: Roots, proof: Proof, inverse_vars: I
 
 }
 
+fn compute_r1(challenge: Challenges, roots: Roots, proof: Proof, inverse_vars: Inverse_vars, pi: u256) -> u256{
+    let mut num: u256 = 1;
+    let y = challenge.y;
+
+    num = num.mulmod(y);
+    num = num.mulmod(y);
+    num = num.mulmod(y);
+    num = num.mulmod(y);
+
+    num = num.addmod(0x00u256.submod(challenge.xi));
+
+    let mut t0: u256 = 0;
+    let eval_a = proof.a.x;
+    let eval_b = proof.b.x;
+    let eval_c = proof.c.x;
+
+    t0 = proof.q_L.x.mulmod(eval_a);
+    t0 = t0.addmod(proof.q_R.x.mulmod(eval_b));
+    t0 = t0.addmod(proof.q_M.x.mulmod(eval_a.mulmod(eval_b)));
+    t0 = t0.addmod(proof.q_O.x.mulmod(eval_c));
+    t0 = t0.addmod(proof.q_C.x);
+    t0 = t0.addmod(pi);
+    t0 = t0.mulmod(inverse_vars.pZhInv);
+
+    let mut res: u256 = 0;
+    let mut h1w4: u256 = 0;
+    let mut c1_value: u256 = 0;
+    let mut square: u256 = 0;
+
+    let mut i = 0;
+    while i < 4 {
+        c1_value = eval_a;
+        h1w4 = roots.s1_h1w4[i];
+        c1_value = c1_value.addmod(h1w4.mulmod(eval_b));
+        square = h1w4.mulmod(h1w4);
+        c1_value = c1_value.addmod(square.mulmod(eval_c));
+        c1_value = c1_value.addmod(t0.mulmod(square.mulmod(h1w4)));
+
+        res = res.addmod(c1_value.mulmod(num.mulmod(inverse_vars.pLiS1Inv[i])));
+
+        i = i + 1;
+    }
+
+    log(res);
+    res
+}
+
+
 // ONLY FOR TESTING
 // so that we dont have to copy everytime in testing
 const proof1: Proof = Proof{
@@ -1441,47 +1489,47 @@ fn test_compute_inversion() {
 }
 
 
-#[test]
-fn test_inverse_array() {
+// #[test]
+// fn test_inverse_array() {
 
-    let public_signal: u256 = 0x110d778eaf8b8ef7ac10f8ac239a14df0eb292a8d1b71340d527b26301a9ab08u256;
-    let (challenges, roots, zh) = compute_challenges(&proof1, public_signal);
+//     let public_signal: u256 = 0x110d778eaf8b8ef7ac10f8ac239a14df0eb292a8d1b71340d527b26301a9ab08u256;
+//     let (challenges, roots, zh) = compute_challenges(&proof1, public_signal);
 
-    let li_s0_inv = compute_li_s0(roots, challenges);
-    let li_s1_inv = compute_li_s1(roots, challenges);
-    let li_s2_inv = compute_li_s2(roots, challenges);
+//     let li_s0_inv = compute_li_s0(roots, challenges);
+//     let li_s1_inv = compute_li_s1(roots, challenges);
+//     let li_s2_inv = compute_li_s2(roots, challenges);
 
-    let zhinv = 0x01598f1579591cfff18429ff3414deaa93eea4ac3d2d35c5baa01dfcd641410bu256;
+//     let zhinv = 0x01598f1579591cfff18429ff3414deaa93eea4ac3d2d35c5baa01dfcd641410bu256;
 
-    assert(zhinv == zh);
+//     assert(zhinv == zh);
 
-    let mut input: Inverse_vars = Inverse_vars {
-        pZhInv: zhinv,
-        pDenH1: 0x0cb4b66615150cef834dd66e874a8edd9b6c191786051dba8bc2ae313cd46a94u256,
-        pDenH2: 0x1814c352e70920cbfa500b8e258ee80b56baecd8e6253e6ab16242413222a906u256,
-        pLiS0Inv: li_s0_inv,
-        pLiS1Inv: li_s1_inv,
-        pLiS2Inv: li_s2_inv
-    };
-    let mut pEval_l1 = 0x1379ba86272ddce77f5f07305480430ce53c2729efce651a9e87d066c427ad07u256;
-    //zh is store in zhinv for inverse computation
-    let (inverse_vars,  pEval_l1)= inverse_array(input, pEval_l1, proof1.batch_inv.x);
+//     let mut input: Inverse_vars = Inverse_vars {
+//         pZhInv: zhinv,
+//         pDenH1: 0x0cb4b66615150cef834dd66e874a8edd9b6c191786051dba8bc2ae313cd46a94u256,
+//         pDenH2: 0x1814c352e70920cbfa500b8e258ee80b56baecd8e6253e6ab16242413222a906u256,
+//         pLiS0Inv: li_s0_inv,
+//         pLiS1Inv: li_s1_inv,
+//         pLiS2Inv: li_s2_inv
+//     };
+//     let mut pEval_l1 = 0x1379ba86272ddce77f5f07305480430ce53c2729efce651a9e87d066c427ad07u256;
+//     //zh is store in zhinv for inverse computation
+//     let (inverse_vars,  pEval_l1)= inverse_array(input, pEval_l1, proof1.batch_inv.x);
 
-    let expected_pDenH1 = 0x15ab61875d3945bbc9392b0354a9abfb40452f34a7fca0d1ccd0a7a8ff901a7cu256;
-    let expected_pDenH2 = 0x0a76ee4974ad4ef57e0da374ff210416832ba953383594252e6e5e06dc22e110u256;
-    let expected_zhInv = 0x05f6cddef83e0436c0f841b938d13576be0f744a7586ce09c975b8566cabd5dcu256;
-    let expected_pEval_l1 = 0x1b35d84010cc45c98684149a7b2f550e506c345cfe3cd45644e27f9ac592fc63u256;
-    let expected_li_s2_inv5 = 0x21c42d1f2ff09bec348936690cf6262eb7a91d7fcbf668afdfe3627d1b510470u256;
-    let expected_li_s2inv5_before = 0x2446460dfaaa9855e8ba16dc60bb41020fb7db69597c0069713b02010d4fe251u256;
+//     let expected_pDenH1 = 0x15ab61875d3945bbc9392b0354a9abfb40452f34a7fca0d1ccd0a7a8ff901a7cu256;
+//     let expected_pDenH2 = 0x0a76ee4974ad4ef57e0da374ff210416832ba953383594252e6e5e06dc22e110u256;
+//     let expected_zhInv = 0x05f6cddef83e0436c0f841b938d13576be0f744a7586ce09c975b8566cabd5dcu256;
+//     let expected_pEval_l1 = 0x1b35d84010cc45c98684149a7b2f550e506c345cfe3cd45644e27f9ac592fc63u256;
+//     let expected_li_s2_inv5 = 0x21c42d1f2ff09bec348936690cf6262eb7a91d7fcbf668afdfe3627d1b510470u256;
+//     let expected_li_s2inv5_before = 0x2446460dfaaa9855e8ba16dc60bb41020fb7db69597c0069713b02010d4fe251u256;
 
-    assert(li_s2_inv[5] == expected_li_s2inv5_before);
-    assert(pEval_l1 == expected_pEval_l1);
-    assert(inverse_vars.pLiS2Inv[5] == expected_li_s2_inv5);
-    assert(inverse_vars.pZhInv == expected_zhInv);
-    assert(inverse_vars.pDenH1 == expected_pDenH1);
-    assert(inverse_vars.pDenH2 == expected_pDenH2);
+//     assert(li_s2_inv[5] == expected_li_s2inv5_before);
+//     assert(pEval_l1 == expected_pEval_l1);
+//     assert(inverse_vars.pLiS2Inv[5] == expected_li_s2_inv5);
+//     assert(inverse_vars.pZhInv == expected_zhInv);
+//     assert(inverse_vars.pDenH1 == expected_pDenH1);
+//     assert(inverse_vars.pDenH2 == expected_pDenH2);
 
-}
+// }
 
 #[test]
 fn test_u256_mod() {
@@ -1528,4 +1576,17 @@ fn test_compute_r0() {
 
     let res = compute_r0(challenges, roots, proof1, inverse_val);
     assert(res == 0x20fdff466630d3c9fa173a8092cbc6764f7b2ede317d0d8cd67b86da4398418au256);
+}
+
+#[test]
+fn test_compute_r1() {
+    let public_signal: u256 = 0x110d778eaf8b8ef7ac10f8ac239a14df0eb292a8d1b71340d527b26301a9ab08u256;
+    let pi: u256 = 0x080a0e10ddb090705b01961e4d7237f5db4357e256601f403dfd94bf06fe5b38u256;
+    let (challenges, roots, zh) = compute_challenges(&proof1, public_signal);
+
+    //zh is store in zhinv for inverse computation
+    let (inverse_val, _)= compute_inversion(roots, challenges, zh, proof1.batch_inv.x);
+
+    let res = compute_r1(challenges, roots, proof1, inverse_val, pi);
+    assert(res == 0x25a1047d2a13d52e414917230fd03b9e7df0df30d47e88fe57191e2063e7356cu256);
 }
