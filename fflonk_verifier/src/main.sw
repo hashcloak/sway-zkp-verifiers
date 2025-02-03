@@ -941,7 +941,6 @@ fn inverse_array(ref mut array: Inverse_vars, ref mut pEval_l1: u256, pEval_inv:
     
     inv = acc.mulmod(res[20]);
 
-    log(res[19]);
     assert(res[19] == 0x287b50a35c0a42df4a9c99e28779cd779d617300f74a45cb441f2d90a1e57ec5u256);
 
 
@@ -1239,7 +1238,6 @@ fn compute_r1(challenge: Challenges, roots: Roots, proof: Proof, inverse_vars: I
         i = i + 1;
     }
 
-    log(res);
     res
 }
 
@@ -1327,6 +1325,53 @@ fn compute_r2(challenge: Challenges, roots: Roots, proof: Proof, inverse_vars: I
 
 }
 
+fn compute_fej(challenge: Challenges, proof: Proof, inverse_vars: Inverse_vars, roots: Roots, r0: u256, r1: u256, r2: u256) -> (G1Point, G1Point, G1Point){
+    let y = challenge.y;
+
+    let mut numerator: u256 = y.submod(roots.s0_h0w8[0]);
+    numerator = numerator.mulmod(y.submod(roots.s0_h0w8[1]));
+    numerator = numerator.mulmod(y.submod(roots.s0_h0w8[2]));
+    numerator = numerator.mulmod(y.submod(roots.s0_h0w8[3]));
+    numerator = numerator.mulmod(y.submod(roots.s0_h0w8[4]));
+    numerator = numerator.mulmod(y.submod(roots.s0_h0w8[5]));
+    numerator = numerator.mulmod(y.submod(roots.s0_h0w8[6]));
+    numerator = numerator.mulmod(y.submod(roots.s0_h0w8[7]));
+
+    // Prepare shared quotient between F and E to reuse it
+    let quotient1: u256 = challenge.alpha.mulmod(numerator.mulmod(inverse_vars.pDenH1));
+    let quotient2: u256 = challenge.alpha.mulmod(challenge.alpha.mulmod(numerator.mulmod(inverse_vars.pDenH2)));
+
+    let pf: G1Point = G1Point {
+        x: C0x,
+        y: C0y,
+    };
+
+    // Compute full batched polynomial commitment [F]_1
+    let q1: Scalar = Scalar {x: quotient1};
+    let q2: Scalar = Scalar {x: quotient2};
+
+    let pf = G1Point::point_add(pf, G1Point::scalar_mul(proof.C1, q1));
+    let pf = G1Point::point_add(pf, G1Point::scalar_mul(proof.C2, q2));
+
+    let g1: G1Point = G1Point {
+        x: G1x,
+        y: G1y,
+    };
+
+    let s1: Scalar = Scalar {
+        x: r0.addmod(u256::addmod(u256::mulmod(quotient1, r1), u256::mulmod(quotient2, r2))),
+    };
+
+    // Compute group-encoded batch evaluation [E]_1
+    let mut pe = G1Point{x: 0, y: 0};
+    pe = G1Point::point_add(pe, G1Point::scalar_mul(g1, s1));
+
+    // Compute the full difference [J]_1
+    let mut pj = G1Point{x: 0, y:0};
+    pj = G1Point::point_add(pj, G1Point::scalar_mul(proof.W, Scalar{x: numerator}));
+
+    (pf, pe, pj)
+}
 
 // ONLY FOR TESTING
 // so that we dont have to copy everytime in testing
@@ -1685,4 +1730,28 @@ fn test_compute_r2() {
 
     let res = compute_r2(challenges, roots, proof1, inverse_val, 0x2a27c4b302cf8686c6287181a80dc4c64d651d30adef81a5aa82af00d376c1f6u256);
     assert(res == 0x23164b0a55a4cefd84a44025585a689cb709bbcaa9155c4afcd08b6155e23be9u256);
+}
+
+#[test]
+fn test_compute_fej() {
+    let public_signal: u256 = 0x110d778eaf8b8ef7ac10f8ac239a14df0eb292a8d1b71340d527b26301a9ab08u256;
+    let (challenges, roots, zh) = compute_challenges(&proof1, public_signal);
+
+    //zh is store in zhinv for inverse computation
+    let (inverse_val, _)= compute_inversion(roots, challenges, zh, proof1.batch_inv.x);
+
+    let r0 = 0x20fdff466630d3c9fa173a8092cbc6764f7b2ede317d0d8cd67b86da4398418au256;
+    let r1 = 0x25a1047d2a13d52e414917230fd03b9e7df0df30d47e88fe57191e2063e7356cu256;
+    let r2 = 0x23164b0a55a4cefd84a44025585a689cb709bbcaa9155c4afcd08b6155e23be9u256;
+
+
+    let (pf, pe, pj) = compute_fej(challenges, proof1, inverse_val, roots, r0, r1, r2);
+
+    let expected_pf = 0x241a01a81e3722d274ae609e3ee31d58576ea93baf26c097af4319b2cf002364u256;
+    let expected_pe = 0x04fabd8151c0b190846b4f0dd9be5d03ec1d9c7551fc23e75a80d9e4b0ee4217u256;
+    let expected_pj = 0x1a01d5448aff62cab7fa6109ef0519467ca95d770b7b559c417678c6fda38c19u256;
+
+    assert(pf.x == expected_pf);
+    assert(pj.x == expected_pj);
+    assert(pe.x == expected_pe)
 }
