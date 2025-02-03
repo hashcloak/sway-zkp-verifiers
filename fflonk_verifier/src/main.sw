@@ -1,6 +1,6 @@
 contract;
 
-use sway_ecc::G1Point;
+use sway_ecc::{G1Point, G2Point};
 use sway_ecc::Scalar;
 use std::hash::Hash;
 use std::hash::keccak256;
@@ -1373,6 +1373,60 @@ fn compute_fej(challenge: Challenges, proof: Proof, inverse_vars: Inverse_vars, 
     (pf, pe, pj)
 }
 
+
+fn check_pairing(pe: G1Point, pf: G1Point, pj: G1Point, proof: Proof, challenge: Challenges) -> u32{
+
+    // prepare input
+    let mut input: [u256; 12] = [0;12];
+
+    // First pairing value
+    // Compute -E
+    let pe = G1Point {
+        x: pe.x,
+        y: qf - pe.y,
+    };
+
+    // Compute -J
+    let pj = G1Point {
+        x: pj.x,
+        y: qf - pj.y,
+    };
+
+    // F = F - E - J + y·W2
+    let mut pf = G1Point::point_add(pf, pe);
+    pf = G1Point::point_add(pf, pj);
+    pf = G1Point::point_add(pf, G1Point::scalar_mul(proof.W_dash, Scalar{x: challenge.y}));
+
+    input[0] = pf.x;
+    input[1] = pf.y;
+
+    // Second pairing value
+    input[2] = G2x2;
+    input[3] = G2x1;
+    input[4] = G2y2;
+    input[5] = G2y1;
+
+    // Third pairing value
+    // Compute -W2
+    input[6] = proof.W_dash.x;
+    input[7] = qf - proof.W_dash.y;
+
+    // Fourth pairing value
+    input[8] = X2x2;
+    input[9] = X2x1;
+    input[10] = X2y2;
+    input[11] = X2y1;
+
+    let groups_of_points: u32 = 2;
+
+    asm(rA, rB: 0, rC: groups_of_points, rD: input) {
+        epar rA rB rC rD;
+        rA: u32
+    }
+
+}
+
+
 // ONLY FOR TESTING
 // so that we dont have to copy everytime in testing
 const proof1: Proof = Proof{
@@ -1747,11 +1801,43 @@ fn test_compute_fej() {
 
     let (pf, pe, pj) = compute_fej(challenges, proof1, inverse_val, roots, r0, r1, r2);
 
-    let expected_pf = 0x241a01a81e3722d274ae609e3ee31d58576ea93baf26c097af4319b2cf002364u256;
-    let expected_pe = 0x04fabd8151c0b190846b4f0dd9be5d03ec1d9c7551fc23e75a80d9e4b0ee4217u256;
-    let expected_pj = 0x1a01d5448aff62cab7fa6109ef0519467ca95d770b7b559c417678c6fda38c19u256;
+    let expected_pf_x = 0x241a01a81e3722d274ae609e3ee31d58576ea93baf26c097af4319b2cf002364u256;
+    let expected_pf_y = 0x07c17af0c04ccc8e0d00f0c95dc4868790befeda1a0e59d371258c024965870fu256;
 
-    assert(pf.x == expected_pf);
-    assert(pj.x == expected_pj);
-    assert(pe.x == expected_pe)
+    let expected_pe_x = 0x04fabd8151c0b190846b4f0dd9be5d03ec1d9c7551fc23e75a80d9e4b0ee4217u256;
+    let expected_pe_y = 0x2e6fd37c7e77f45c2e1fa2e8284689abdc7c6959206f3e90be028cf22d439f51u256;
+
+    let expected_pj_x = 0x1a01d5448aff62cab7fa6109ef0519467ca95d770b7b559c417678c6fda38c19u256;
+    let expected_pj_y = 0x062f89913ea4ddb6c9f467b87b2728a5d814ffd06489ac9421fc493bf8c5b7e9u256;
+
+    assert(pf.x == expected_pf_x);
+    assert(pj.x == expected_pj_x);
+    assert(pe.x == expected_pe_x);
+    assert(pf.y == expected_pf_y);
+    assert(pj.y == expected_pj_y);
+    assert(pe.y == expected_pe_y)
+}
+
+#[test]
+fn test_check_pairing() {
+    let public_signal: u256 = 0x110d778eaf8b8ef7ac10f8ac239a14df0eb292a8d1b71340d527b26301a9ab08u256;
+    let (challenges, roots, zh) = compute_challenges(&proof1, public_signal);
+
+    let pf = G1Point {
+        x: 0x241a01a81e3722d274ae609e3ee31d58576ea93baf26c097af4319b2cf002364u256,
+        y: 0x07c17af0c04ccc8e0d00f0c95dc4868790befeda1a0e59d371258c024965870fu256,
+    };
+
+    let pe = G1Point {
+        x: 0x04fabd8151c0b190846b4f0dd9be5d03ec1d9c7551fc23e75a80d9e4b0ee4217u256,
+        y: 0x2e6fd37c7e77f45c2e1fa2e8284689abdc7c6959206f3e90be028cf22d439f51u256,
+    };
+
+    let pj = G1Point {
+        x: 0x1a01d5448aff62cab7fa6109ef0519467ca95d770b7b559c417678c6fda38c19u256,
+        y: 0x062f89913ea4ddb6c9f467b87b2728a5d814ffd06489ac9421fc493bf8c5b7e9u256,
+    };
+
+    let res = check_pairing(pe, pf, pj, proof1, challenges);
+    assert(res == 1);
 }
