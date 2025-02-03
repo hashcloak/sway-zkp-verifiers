@@ -1,6 +1,6 @@
 [project]
 authors = ["Elena"]
-entry = "main.sw"
+entry = "main_scalar_free.sw"
 license = "Apache-2.0"
 name = "plonk_verifier"
 

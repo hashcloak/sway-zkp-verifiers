@@ -173,6 +173,38 @@ impl G1Point {
         G1Point::from_bytes(output)
     }
 
+
+    pub fn u256_mul(self, s: u256) -> G1Point {
+        let mut input: [u8; 96] = [0; 96];
+        let mut output: [u8; 64] = [0; 64];
+
+        let mut p_bytes: [u8; 64] = self.to_bytes();
+        let mut s_bytes: [u8; 32] = s.to_be_bytes();
+
+        // preparing inputs
+        let mut i = 0;
+        while i < 64 {
+            input[i] = p_bytes[i];
+            i += 1;
+        }
+
+        while i < 96 {
+            input[i] = s_bytes[i - 64];
+            i += 1;
+        }
+
+        let curve_id: u32 = 0;
+        let op_type: u32 = 1;
+
+        // ecc multiplication opcode
+        // https://github.com/FuelLabs/fuel-specs/blob/abfd0bb29fab605e0e067165363581232c40e0bb/src/fuel-vm/instruction-set.md#ecop-elliptic-curve-point-operation
+        asm(rA: output, rB: curve_id, rC: op_type, rD: input) {
+            ecop rA rB rC rD;
+        }
+
+        G1Point::from_bytes(output)
+    }
+
     // https://github.com/FuelLabs/fuel-specs/blob/abfd0bb29fab605e0e067165363581232c40e0bb/src/fuel-vm/instruction-set.md#epar-elliptic-curve-point-pairing-check
     // checks e(p1[0], p2[0]) *  .... * e(p1[n], p2[n]) == 1
     pub fn pairing(p_g1: G1Point, p_g2: G2Point) -> u32 {
