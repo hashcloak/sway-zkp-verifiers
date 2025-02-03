@@ -1243,6 +1243,90 @@ fn compute_r1(challenge: Challenges, roots: Roots, proof: Proof, inverse_vars: I
     res
 }
 
+fn compute_r2(challenge: Challenges, roots: Roots, proof: Proof, inverse_vars: Inverse_vars, pEval_l1: u256) -> u256{
+    let y = challenge.y;
+    let mut num: u256 = 1;
+    num = num.mulmod(y);
+    num = num.mulmod(y);
+    num = num.mulmod(y);
+    num = num.mulmod(y);
+    num = num.mulmod(y);
+    num = num.mulmod(y);
+
+    let mut num2: u256 = 1;
+    num2 = num2.mulmod(y);
+    num2 = num2.mulmod(y);
+    num2 = num2.mulmod(y);
+    num2 = num2.mulmod(u256::addmod(challenge.xi.mulmod(w1), challenge.xi));
+
+    num = num.submod(num2);
+
+
+    num2 = u256::mulmod(u256::mulmod(challenge.xi, w1), challenge.xi);
+
+    num = num.addmod(num2);
+
+    let mut t1: u256 = 0;
+    let mut t2: u256 = 0;
+
+    let beta_xi: u256 = challenge.beta.mulmod(challenge.xi);
+    let mut gamma = challenge.gamma;
+
+    t2 = proof.a.x.addmod(beta_xi.addmod(gamma));
+    t2 = t2.mulmod(proof.b.x.addmod(u256::addmod(beta_xi.mulmod(k1), gamma)));
+    t2 = t2.mulmod(proof.c.x.addmod(u256::addmod(beta_xi.mulmod(k2), gamma)));
+    t2 = t2.mulmod(proof.z.x);
+
+    //Let's use t1 as a temporal variable to save one local
+    t1 = proof.a.x.addmod(u256::addmod(u256::mulmod(challenge.beta, proof.S_sigma_1.x), gamma));
+    t1 = t1.mulmod(proof.b.x.addmod(u256::addmod(u256::mulmod(challenge.beta, proof.S_sigma_2.x), gamma)));
+    t1 = t1.mulmod(proof.c.x.addmod(u256::addmod(u256::mulmod(challenge.beta, proof.S_sigma_3.x), gamma)));
+    t1 = t1.mulmod(proof.z_omega.x);
+
+    t2 = t2.submod(t1);
+    t2 = t2.mulmod(inverse_vars.pZhInv);
+
+    // Compute T1(xi)
+    t1 = proof.z.x.submod(1);
+    t1 = t1.mulmod(pEval_l1);
+    t1 = t1.mulmod(inverse_vars.pZhInv);
+
+    gamma = 0;
+    let mut hw: u256 = roots.s2_h2w3[0];
+    let mut c2_value: u256 = proof.z.x.addmod(hw.mulmod(t1));
+    c2_value = c2_value.addmod(t2.mulmod(hw.mulmod(hw)));
+    gamma = gamma.addmod(u256::mulmod(c2_value, u256::mulmod(num, inverse_vars.pLiS2Inv[0])));
+
+    hw = roots.s2_h2w3[1];
+    c2_value = proof.z.x.addmod(hw.mulmod(t1));
+    c2_value = c2_value.addmod(t2.mulmod(hw.mulmod(hw)));
+    gamma = gamma.addmod(u256::mulmod(c2_value, u256::mulmod(num, inverse_vars.pLiS2Inv[1])));
+
+
+    hw = roots.s2_h2w3[2];
+    c2_value = proof.z.x.addmod(hw.mulmod(t1));
+    c2_value = c2_value.addmod(t2.mulmod(hw.mulmod(hw)));
+    gamma = gamma.addmod(u256::mulmod(c2_value, u256::mulmod(num, inverse_vars.pLiS2Inv[2])));
+
+    hw = roots.s2_h3w3[0];
+    c2_value = proof.z_omega.x.addmod(hw.mulmod(proof.T_1_omega.x));
+    c2_value = c2_value.addmod(proof.T_2_omega.x.mulmod(hw.mulmod(hw)));
+    gamma = gamma.addmod(u256::mulmod(c2_value, u256::mulmod(num, inverse_vars.pLiS2Inv[3])));
+
+    hw = roots.s2_h3w3[1];
+    c2_value = proof.z_omega.x.addmod(hw.mulmod(proof.T_1_omega.x));
+    c2_value = c2_value.addmod(proof.T_2_omega.x.mulmod(hw.mulmod(hw)));
+    gamma = gamma.addmod(u256::mulmod(c2_value, u256::mulmod(num, inverse_vars.pLiS2Inv[4])));
+
+    hw = roots.s2_h3w3[2];
+    c2_value = proof.z_omega.x.addmod(hw.mulmod(proof.T_1_omega.x));
+    c2_value = c2_value.addmod(proof.T_2_omega.x.mulmod(hw.mulmod(hw)));
+    gamma = gamma.addmod(u256::mulmod(c2_value, u256::mulmod(num, inverse_vars.pLiS2Inv[5])));
+
+    gamma
+
+}
+
 
 // ONLY FOR TESTING
 // so that we dont have to copy everytime in testing
@@ -1589,4 +1673,16 @@ fn test_compute_r1() {
 
     let res = compute_r1(challenges, roots, proof1, inverse_val, pi);
     assert(res == 0x25a1047d2a13d52e414917230fd03b9e7df0df30d47e88fe57191e2063e7356cu256);
+}
+
+#[test]
+fn test_compute_r2() {
+    let public_signal: u256 = 0x110d778eaf8b8ef7ac10f8ac239a14df0eb292a8d1b71340d527b26301a9ab08u256;
+    let (challenges, roots, zh) = compute_challenges(&proof1, public_signal);
+
+    //zh is store in zhinv for inverse computation
+    let (inverse_val, _)= compute_inversion(roots, challenges, zh, proof1.batch_inv.x);
+
+    let res = compute_r2(challenges, roots, proof1, inverse_val, 0x2a27c4b302cf8686c6287181a80dc4c64d651d30adef81a5aa82af00d376c1f6u256);
+    assert(res == 0x23164b0a55a4cefd84a44025585a689cb709bbcaa9155c4afcd08b6155e23be9u256);
 }
