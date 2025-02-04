@@ -245,16 +245,23 @@ fn check_input(proof: Proof) -> bool {
     true
 }
 
-
+//TODO: pub_signals: [u256;1] change to max(1, nPublic)
 // challenges = (alpha, beta, gamma, y, xi_seed, xi_seed^2, xi)
 // roots is needed for later computations
 // last u256 is Z_H(xi)
-fn compute_challenges(proof: &Proof, pub_signals: u256) -> (Challenges, Roots, u256) {
+fn compute_challenges(proof: &Proof, pub_signals: [u256;1]) -> (Challenges, Roots, u256) {
     let mut transcript: Bytes = Bytes::new();
 
     transcript.append(C0x.to_be_bytes());
     transcript.append(C0y.to_be_bytes());
-    transcript.append(pub_signals.to_be_bytes());
+    transcript.append(pub_signals[0].to_be_bytes());
+
+    let mut i = 1;
+    while i < nPublic {
+        transcript.append(pub_signals[i].to_be_bytes());
+        i += 1;
+    }
+
     transcript.append(proof.C1.x.to_be_bytes());
     transcript.append(proof.C1.y.to_be_bytes());
 
@@ -1349,7 +1356,7 @@ fn verify_proof(proof: Proof, pub_signal: [u256;1]) -> bool {
     assert(check_input(proof));
 
     // Compute the challenges: beta, gamma, xi, alpha and y ∈ F, h1w4/h2w3/h3w3 roots, xiN and zh(xi)
-    let (challenges, roots, zh) = compute_challenges(&proof1, pub_signal[0]);
+    let (challenges, roots, zh) = compute_challenges(&proof1, pub_signal);
 
     // To divide prime fields the Extended Euclidean Algorithm for computing modular inverses is needed.
     // The Montgomery batch inversion algorithm allow us to compute n inverses reducing to a single one inversion.
@@ -1467,7 +1474,7 @@ fn test_challenge() {
 
     let public_signal: u256 = 0x110d778eaf8b8ef7ac10f8ac239a14df0eb292a8d1b71340d527b26301a9ab08u256;
 
-    let (challenge, _, _) = compute_challenges(&proof1, public_signal);
+    let (challenge, _, _) = compute_challenges(&proof1, [public_signal]);
     let expected_beta: u256 = 0x020021ade096c7681a001bf89e1b6b078614be20ed11df702729e254cc4276b7u256;
 
     let beta = challenge.beta;
@@ -1497,7 +1504,7 @@ fn test_challenge() {
 fn test_compute_li_s0() {
 
     let public_signal: u256 = 0x110d778eaf8b8ef7ac10f8ac239a14df0eb292a8d1b71340d527b26301a9ab08u256;
-    let (challenges, roots, _) = compute_challenges(&proof1, public_signal);
+    let (challenges, roots, _) = compute_challenges(&proof1, [public_signal]);
 
     let expected_h0_w8_0 = 0x187355a96fcb8745237e92eb0ef7baa42241dd1e30ef9f671e57fd9acde6969cu256;
     let expected_h0_w8_1 = 0x243eef9bc893a36be21202391a8a54bb9b3fdca5d3ad60c8c0e7021496d7f05au256;
@@ -1569,7 +1576,7 @@ fn test_compute_li_s0() {
 fn test_compute_li_s1() {
 
     let public_signal: u256 = 0x110d778eaf8b8ef7ac10f8ac239a14df0eb292a8d1b71340d527b26301a9ab08u256;
-    let (challenges, roots, _) = compute_challenges(&proof1, public_signal);
+    let (challenges, roots, _) = compute_challenges(&proof1, [public_signal]);
 
     let res = compute_li_s1(roots, challenges);
 
@@ -1592,7 +1599,7 @@ fn test_compute_li_s1() {
 fn test_compute_li_s2() {
 
     let public_signal: u256 = 0x110d778eaf8b8ef7ac10f8ac239a14df0eb292a8d1b71340d527b26301a9ab08u256;
-    let (challenges, roots, _) = compute_challenges(&proof1, public_signal);
+    let (challenges, roots, _) = compute_challenges(&proof1, [public_signal]);
 
     let res = compute_li_s2(roots, challenges);
 
@@ -1616,7 +1623,7 @@ fn test_compute_li_s2() {
 fn test_compute_inversion() {
 
     let public_signal: u256 = 0x110d778eaf8b8ef7ac10f8ac239a14df0eb292a8d1b71340d527b26301a9ab08u256;
-    let (challenges, roots, zh) = compute_challenges(&proof1, public_signal);
+    let (challenges, roots, zh) = compute_challenges(&proof1, [public_signal]);
 
     //zh is store in zhinv for inverse computation
     let (inverse_val, pEval_l1)= compute_inversion(roots, challenges, zh, proof1.batch_inv.x);
@@ -1636,7 +1643,7 @@ fn test_compute_inversion() {
 fn test_inverse_array() {
 
     let public_signal: u256 = 0x110d778eaf8b8ef7ac10f8ac239a14df0eb292a8d1b71340d527b26301a9ab08u256;
-    let (challenges, roots, zh) = compute_challenges(&proof1, public_signal);
+    let (challenges, roots, zh) = compute_challenges(&proof1, [public_signal]);
 
     let li_s0_inv = compute_li_s0(roots, challenges);
     let li_s1_inv = compute_li_s1(roots, challenges);
@@ -1711,7 +1718,7 @@ fn test_compute_pi() {
 #[test]
 fn test_compute_r0() {
     let public_signal: u256 = 0x110d778eaf8b8ef7ac10f8ac239a14df0eb292a8d1b71340d527b26301a9ab08u256;
-    let (challenges, roots, zh) = compute_challenges(&proof1, public_signal);
+    let (challenges, roots, zh) = compute_challenges(&proof1, [public_signal]);
 
     //zh is store in zhinv for inverse computation
     let (inverse_val, pEval_l1)= compute_inversion(roots, challenges, zh, proof1.batch_inv.x);
@@ -1724,7 +1731,7 @@ fn test_compute_r0() {
 fn test_compute_r1() {
     let public_signal: u256 = 0x110d778eaf8b8ef7ac10f8ac239a14df0eb292a8d1b71340d527b26301a9ab08u256;
     let pi: u256 = 0x080a0e10ddb090705b01961e4d7237f5db4357e256601f403dfd94bf06fe5b38u256;
-    let (challenges, roots, zh) = compute_challenges(&proof1, public_signal);
+    let (challenges, roots, zh) = compute_challenges(&proof1, [public_signal]);
 
     //zh is store in zhinv for inverse computation
     let (inverse_val, _)= compute_inversion(roots, challenges, zh, proof1.batch_inv.x);
@@ -1736,7 +1743,7 @@ fn test_compute_r1() {
 #[test]
 fn test_compute_r2() {
     let public_signal: u256 = 0x110d778eaf8b8ef7ac10f8ac239a14df0eb292a8d1b71340d527b26301a9ab08u256;
-    let (challenges, roots, zh) = compute_challenges(&proof1, public_signal);
+    let (challenges, roots, zh) = compute_challenges(&proof1, [public_signal]);
 
     //zh is store in zhinv for inverse computation
     let (inverse_val, _)= compute_inversion(roots, challenges, zh, proof1.batch_inv.x);
@@ -1748,7 +1755,7 @@ fn test_compute_r2() {
 #[test]
 fn test_compute_fej() {
     let public_signal: u256 = 0x110d778eaf8b8ef7ac10f8ac239a14df0eb292a8d1b71340d527b26301a9ab08u256;
-    let (challenges, roots, zh) = compute_challenges(&proof1, public_signal);
+    let (challenges, roots, zh) = compute_challenges(&proof1, [public_signal]);
 
     //zh is store in zhinv for inverse computation
     let (inverse_val, _)= compute_inversion(roots, challenges, zh, proof1.batch_inv.x);
@@ -1780,7 +1787,7 @@ fn test_compute_fej() {
 #[test]
 fn test_check_pairing() {
     let public_signal: u256 = 0x110d778eaf8b8ef7ac10f8ac239a14df0eb292a8d1b71340d527b26301a9ab08u256;
-    let (challenges, roots, zh) = compute_challenges(&proof1, public_signal);
+    let (challenges, roots, zh) = compute_challenges(&proof1, [public_signal]);
 
     let pf = G1Point {
         x: 0x241a01a81e3722d274ae609e3ee31d58576ea93baf26c097af4319b2cf002364u256,
