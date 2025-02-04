@@ -772,10 +772,13 @@ fn compute_li_s2(roots: Roots, challenges: Challenges) -> [u256; 6] {
 
 
 
-
+// TODO: change pEval_l: [u256;1] to max(1, nPublic)
 // pZhInv, pDenH1, pDenH2, pLiS0Inv, pLiS1Inv, pLiS2Inv in order
-fn inverse_array(ref mut array: Inverse_vars, ref mut pEval_l1: u256, pEval_inv: u256) -> (Inverse_vars, u256){
+fn inverse_array(ref mut array: Inverse_vars, ref mut pEval_l: [u256;1], pEval_inv: u256) -> (Inverse_vars, [u256;1]){
     
+    //TODO: this size length should the res array
+    let size = 21 + u64::max(nPublic, 1);
+
     let mut res: [u256; 22] = [0; 22];
     let mut acc = array.pZhInv;
 
@@ -852,11 +855,13 @@ fn inverse_array(ref mut array: Inverse_vars, ref mut pEval_l1: u256, pEval_inv:
     acc = acc.mulmod(array.pLiS2Inv[5]);
     res[20] = acc;
 
+    let mut i = 21;
+    while i < size {
+        acc = acc.mulmod(pEval_l[i - 21]);
+        res[i] = acc;
+        i = i + 1;
+    }
 
-    acc = acc.mulmod(pEval_l1);
-    res[21] = acc;
-
-    
     let mut inv = pEval_inv;
 
     // Before using the inverse sent by the prover the verifier checks inv(batch) * batch === 1
@@ -864,11 +869,13 @@ fn inverse_array(ref mut array: Inverse_vars, ref mut pEval_l1: u256, pEval_inv:
 
     acc = inv;
     
-    inv = acc.mulmod(res[20]);
-
-
-    acc = acc.mulmod(pEval_l1);
-    pEval_l1 = inv;
+    let mut i = size - 1;
+    while i > 20 {
+        inv = acc.mulmod(res[i-1]);
+        acc = acc.mulmod(pEval_l[i - 21]);
+        pEval_l[i - 21] = inv;
+        i = i - 1;
+    }
 
     inv = acc.mulmod(res[19]);
     acc = acc.mulmod(array.pLiS2Inv[5]);
@@ -950,16 +957,14 @@ fn inverse_array(ref mut array: Inverse_vars, ref mut pEval_l1: u256, pEval_inv:
     acc = acc.mulmod(array.pDenH1);
     array.pDenH1 = inv;
 
-    // inv = acc.mulmod(res[0]);
     array.pZhInv = acc;
 
-    // array.pZhInv = inv;
-
-    (array, pEval_l1)
+    (array, pEval_l)
 
 }
 
-fn compute_inversion(roots: Roots, challenges: Challenges, zh_inv: u256, eval_inv: u256)  -> (Inverse_vars, u256){
+// TODO: change return type: [u256;1] to max(1, nPublic)
+fn compute_inversion(roots: Roots, challenges: Challenges, zh_inv: u256, eval_inv: u256)  -> (Inverse_vars, [u256;1]){
 
     // 1/((y - h1) (y - h1w4) (y - h1w4_2) (y - h1w4_3))
     let y = challenges.y;
@@ -1010,11 +1015,21 @@ fn compute_inversion(roots: Roots, challenges: Challenges, zh_inv: u256, eval_in
     let li_s1_inv = compute_li_s1(roots, challenges);
     let li_s2_inv = compute_li_s2(roots, challenges);
 
-    let w: u256 = 1;
+    let mut w: u256 = 1;
     let xi = challenges.xi;
 
-    let t = xi.submod(w);
-    let mut eval_l1 = t.mulmod(u256::from(n));
+    let mut i = 1;
+    // TODO: change pEval_l: [u256;1] to max(1, nPublic)
+
+    let mut pEval_l: [u256;1] = [0;1];
+    while i <= u64::max(nPublic, 1) {
+        pEval_l[i-1] = u256::from(n).mulmod(xi.submod(w));
+
+        if i < u64::max(nPublic, 1) {
+            w = w.mulmod(w1);
+        }
+        i = i + 1;
+    }
 
     let mut input: Inverse_vars = Inverse_vars {
         pZhInv: zh_inv,
@@ -1025,7 +1040,7 @@ fn compute_inversion(roots: Roots, challenges: Challenges, zh_inv: u256, eval_in
         pLiS2Inv: li_s2_inv
     };
 
-    inverse_array(input, eval_l1, eval_inv)
+    inverse_array(input, pEval_l, eval_inv)
 }
 
 //TODO
@@ -1367,7 +1382,7 @@ fn verify_proof(proof: Proof, pub_signal: [u256;1]) -> bool {
     //      3) Compute the others inverses using the Montgomery Batched Algorithm using the inverse sent to avoid the inversion operation it does.
 
     let ( inverse_val, pEval_l1)= compute_inversion(roots, challenges, zh, proof1.batch_inv.x);
-    let mut Eval_l1: [u256;1] = [pEval_l1];
+    let mut Eval_l1: [u256;1] = pEval_l1;
 
     // Compute Lagrange polynomial evaluations Li(xi)
     let eval_l1 = compute_lagrange(zh, Eval_l1);
@@ -1661,7 +1676,7 @@ fn test_inverse_array() {
         pLiS1Inv: li_s1_inv,
         pLiS2Inv: li_s2_inv
     };
-    let mut pEval_l1 = 0x1379ba86272ddce77f5f07305480430ce53c2729efce651a9e87d066c427ad07u256;
+    let mut pEval_l1 = [0x1379ba86272ddce77f5f07305480430ce53c2729efce651a9e87d066c427ad07u256];
     //zh is store in zhinv for inverse computation
     let (inverse_vars,  pEval_l1)= inverse_array(input, pEval_l1, proof1.batch_inv.x);
 
@@ -1673,7 +1688,7 @@ fn test_inverse_array() {
     let expected_li_s2inv5_before = 0x2446460dfaaa9855e8ba16dc60bb41020fb7db69597c0069713b02010d4fe251u256;
 
     assert(li_s2_inv[5] == expected_li_s2inv5_before);
-    assert(pEval_l1 == expected_pEval_l1);
+    assert(pEval_l1[0] == expected_pEval_l1);
     assert(inverse_vars.pLiS2Inv[5] == expected_li_s2_inv5);
     assert(inverse_vars.pZhInv == expected_zhInv);
     assert(inverse_vars.pDenH1 == expected_pDenH1);
