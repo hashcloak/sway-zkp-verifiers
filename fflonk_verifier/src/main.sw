@@ -1,7 +1,9 @@
 contract;
 
-use sway_ecc::{G1Point, G2Point};
-use sway_ecc::Scalar;
+mod lib;
+
+use lib::{G1Point, G2Point};
+use lib::Scalar;
 use std::hash::Hash;
 use std::hash::keccak256;
 use std::bytes::Bytes;
@@ -63,90 +65,6 @@ pub const G2x1: u256 = 0x1800DEEF121F1E76426A00665E5C4479674322D4F75EDADD46DEBD5
 pub const G2x2: u256 = 0x198E9393920D483A7260BFB731FB5D25F1AA493335A9E71297E485B7AEF312C2u256;
 pub const G2y1: u256 = 0x12C85EA5DB8C6DEB4AAB71808DCB408FE3D1E7690C43D37B4CE6CC0166FA7DAAu256;
 pub const G2y2: u256 = 0x90689D0585FF075EC9E99AD690C3395BC4B313370B38EF355ACDADCD122975Bu256;
-
-// // Proof calldata
-// // Byte offset of every parameter of the calldata
-// // Polynomial commitments
-// const pC1: u16       = 4 + 0;     // [C1]_1
-// const pC2: u16       = 4 + 32*2;  // [C2]_1
-// const pW1: u16       = 4 + 32*4;  // [W]_1
-// const pW2: u16       = 4 + 32*6;  // [W']_1
-// // Opening evaluations
-// const pEval_ql: u16  = 4 + 32*8;  // q_L(xi)
-// const pEval_qr: u16  = 4 + 32*9;  // q_R(xi)
-// const pEval_qm: u16  = 4 + 32*10; // q_M(xi)
-// const pEval_qo: u16  = 4 + 32*11; // q_O(xi)
-// const pEval_qc: u16  = 4 + 32*12; // q_C(xi)
-// const pEval_s1: u16  = 4 + 32*13; // S_{sigma_1}(xi)
-// const pEval_s2: u16  = 4 + 32*14; // S_{sigma_2}(xi)
-// const pEval_s3: u16  = 4 + 32*15; // S_{sigma_3}(xi)
-// const pEval_a: u16   = 4 + 32*16; // a(xi)
-// const pEval_b: u16   = 4 + 32*17; // b(xi)
-// const pEval_c: u16   = 4 + 32*18; // c(xi)
-// const pEval_z: u16   = 4 + 32*19; // z(xi)
-// const pEval_zw: u16  = 4 + 32*20; // z_omega(xi)
-// const pEval_t1w: u16 = 4 + 32*21; // T_1(xi omega)
-// const pEval_t2w: u16 = 4 + 32*22; // T_2(xi omega)
-// const pEval_inv: u16 = 4 + 32*23; // inv(batch) sent by the prover to avoid any inverse calculation to save gas,
-// // we check the correctness of the inv(batch) by computing batch
-// // and checking inv(batch) * batch == 1
-
-// Memory data
-// Challenges
-// const pAlpha: u16 = 0; // alpha challenge
-// const pBeta: u16 = 32; // beta challenge
-// const pGamma: u16 = 64; // gamma challenge
-// const pY: u16 = 96; // y challenge
-// const pXiSeed: u16 = 128; // xi seed, from this value we compute xi = xiSeed^24
-// const pXiSeed2: u16 = 160; // (xi seed)^2
-// const pXi: u16 = 192; // xi challenge
-// // Roots
-// // S_0 = roots_8(xi) = { h_0, h_0w_8, h_0w_8^2, h_0w_8^3, h_0w_8^4, h_0w_8^5, h_0w_8^6, h_0w_8^7 }
-// const pH0w8_0: u16 = 224;
-// const pH0w8_1: u16 = 256;
-// const pH0w8_2: u16 = 288;
-// const pH0w8_3: u16 = 320;
-// const pH0w8_4: u16 = 352;
-// const pH0w8_5: u16 = 384;
-// const pH0w8_6: u16 = 416;
-// const pH0w8_7: u16 = 448;
-
-// // S_1 = roots_4(xi) = { h_1, h_1w_4, h_1w_4^2, h_1w_4^3 }
-// const pH1w4_0: u16 = 480;
-// const pH1w4_1: u16 = 512;
-// const pH1w4_2: u16 = 544;
-// const pH1w4_3: u16 = 576;
-
-// // S_2 = roots_3(xi) U roots_3(xi omega)
-// // roots_3(xi) = { h_2, h_2w_3, h_2w_3^2 }
-// const pH2w3_0: u16 = 608;
-// const pH2w3_1: u16 = 640;
-// const pH2w3_2: u16 = 672;
-// // roots_3(xi omega) = { h_3, h_3w_3, h_3w_3^2 }
-// const pH3w3_0: u16 = 704;
-// const pH3w3_1: u16 = 736;
-// const pH3w3_2: u16 = 768;
-
-// const pPi: u16 = 800; // PI(xi)
-// const pR0: u16 = 832; // r0(y)
-// const pR1: u16 = 864; // r1(y)
-// const pR2: u16 = 896; // r2(y)
-// const pF: u16 = 928; // [F]_1, 64 bytes
-// const pE: u16 = 992; // [E]_1, 64 bytes
-// const pJ: u16 = 1056; // [J]_1, 64 bytes
-// const pZh: u16 = 1184; // Z_H(xi)
-// // From this point we write all the variables that must be computed using the Montgomery batch inversion
-// const pZhInv: u16 = 1216; // 1/Z_H(xi)
-// const pDenH1: u16 = 1248; // 1/( (y-h_1w_4) (y-h_1w_4^2) (y-h_1w_4^3) (y-h_1w_4^4) )
-// const pDenH2: u16 = 1280; // 1/( (y-h_2w_3) (y-h_2w_3^2) (y-h_2w_3^3) (y-h_3w_3) (y-h_3w_3^2) (y-h_3w_3^3) )
-// const pLiS0Inv: u16 = 1312; // Reserve 8 * 32 bytes to compute r_0(X)
-// const pLiS1Inv: u16 = 1568; // Reserve 4 * 32 bytes to compute r_1(X)
-// const pLiS2Inv: u16 = 1696; // Reserve 6 * 32 bytes to compute r_2(X)
-// // Lagrange evaluations
-
-// const pEval_l1: u16 = 1888;
-
-// const lastMem: u16 = 1920;
 
 // abi MyContract {
 //     fn test_function() -> bool;
@@ -941,8 +859,6 @@ fn inverse_array(ref mut array: Inverse_vars, ref mut pEval_l1: u256, pEval_inv:
     
     inv = acc.mulmod(res[20]);
 
-    assert(res[19] == 0x287b50a35c0a42df4a9c99e28779cd779d617300f74a45cb441f2d90a1e57ec5u256);
-
 
     acc = acc.mulmod(pEval_l1);
     pEval_l1 = inv;
@@ -1672,47 +1588,46 @@ fn test_compute_inversion() {
 }
 
 
-// #[test]
-// fn test_inverse_array() {
+#[test]
+fn test_inverse_array() {
 
-//     let public_signal: u256 = 0x110d778eaf8b8ef7ac10f8ac239a14df0eb292a8d1b71340d527b26301a9ab08u256;
-//     let (challenges, roots, zh) = compute_challenges(&proof1, public_signal);
+    let public_signal: u256 = 0x110d778eaf8b8ef7ac10f8ac239a14df0eb292a8d1b71340d527b26301a9ab08u256;
+    let (challenges, roots, zh) = compute_challenges(&proof1, public_signal);
 
-//     let li_s0_inv = compute_li_s0(roots, challenges);
-//     let li_s1_inv = compute_li_s1(roots, challenges);
-//     let li_s2_inv = compute_li_s2(roots, challenges);
+    let li_s0_inv = compute_li_s0(roots, challenges);
+    let li_s1_inv = compute_li_s1(roots, challenges);
+    let li_s2_inv = compute_li_s2(roots, challenges);
 
-//     let zhinv = 0x01598f1579591cfff18429ff3414deaa93eea4ac3d2d35c5baa01dfcd641410bu256;
+    let zhinv = 0x01598f1579591cfff18429ff3414deaa93eea4ac3d2d35c5baa01dfcd641410bu256;
 
-//     assert(zhinv == zh);
+    assert(zhinv == zh);
 
-//     let mut input: Inverse_vars = Inverse_vars {
-//         pZhInv: zhinv,
-//         pDenH1: 0x0cb4b66615150cef834dd66e874a8edd9b6c191786051dba8bc2ae313cd46a94u256,
-//         pDenH2: 0x1814c352e70920cbfa500b8e258ee80b56baecd8e6253e6ab16242413222a906u256,
-//         pLiS0Inv: li_s0_inv,
-//         pLiS1Inv: li_s1_inv,
-//         pLiS2Inv: li_s2_inv
-//     };
-//     let mut pEval_l1 = 0x1379ba86272ddce77f5f07305480430ce53c2729efce651a9e87d066c427ad07u256;
-//     //zh is store in zhinv for inverse computation
-//     let (inverse_vars,  pEval_l1)= inverse_array(input, pEval_l1, proof1.batch_inv.x);
+    let mut input: Inverse_vars = Inverse_vars {
+        pZhInv: zhinv,
+        pDenH1: 0x0cb4b66615150cef834dd66e874a8edd9b6c191786051dba8bc2ae313cd46a94u256,
+        pDenH2: 0x1814c352e70920cbfa500b8e258ee80b56baecd8e6253e6ab16242413222a906u256,
+        pLiS0Inv: li_s0_inv,
+        pLiS1Inv: li_s1_inv,
+        pLiS2Inv: li_s2_inv
+    };
+    let mut pEval_l1 = 0x1379ba86272ddce77f5f07305480430ce53c2729efce651a9e87d066c427ad07u256;
+    //zh is store in zhinv for inverse computation
+    let (inverse_vars,  pEval_l1)= inverse_array(input, pEval_l1, proof1.batch_inv.x);
 
-//     let expected_pDenH1 = 0x15ab61875d3945bbc9392b0354a9abfb40452f34a7fca0d1ccd0a7a8ff901a7cu256;
-//     let expected_pDenH2 = 0x0a76ee4974ad4ef57e0da374ff210416832ba953383594252e6e5e06dc22e110u256;
-//     let expected_zhInv = 0x05f6cddef83e0436c0f841b938d13576be0f744a7586ce09c975b8566cabd5dcu256;
-//     let expected_pEval_l1 = 0x1b35d84010cc45c98684149a7b2f550e506c345cfe3cd45644e27f9ac592fc63u256;
-//     let expected_li_s2_inv5 = 0x21c42d1f2ff09bec348936690cf6262eb7a91d7fcbf668afdfe3627d1b510470u256;
-//     let expected_li_s2inv5_before = 0x2446460dfaaa9855e8ba16dc60bb41020fb7db69597c0069713b02010d4fe251u256;
+    let expected_pDenH1 = 0x15ab61875d3945bbc9392b0354a9abfb40452f34a7fca0d1ccd0a7a8ff901a7cu256;
+    let expected_pDenH2 = 0x0a76ee4974ad4ef57e0da374ff210416832ba953383594252e6e5e06dc22e110u256;
+    let expected_zhInv = 0x05f6cddef83e0436c0f841b938d13576be0f744a7586ce09c975b8566cabd5dcu256;
+    let expected_pEval_l1 = 0x1b35d84010cc45c98684149a7b2f550e506c345cfe3cd45644e27f9ac592fc63u256;
+    let expected_li_s2_inv5 = 0x21c42d1f2ff09bec348936690cf6262eb7a91d7fcbf668afdfe3627d1b510470u256;
+    let expected_li_s2inv5_before = 0x2446460dfaaa9855e8ba16dc60bb41020fb7db69597c0069713b02010d4fe251u256;
 
-//     assert(li_s2_inv[5] == expected_li_s2inv5_before);
-//     assert(pEval_l1 == expected_pEval_l1);
-//     assert(inverse_vars.pLiS2Inv[5] == expected_li_s2_inv5);
-//     assert(inverse_vars.pZhInv == expected_zhInv);
-//     assert(inverse_vars.pDenH1 == expected_pDenH1);
-//     assert(inverse_vars.pDenH2 == expected_pDenH2);
-
-// }
+    assert(li_s2_inv[5] == expected_li_s2inv5_before);
+    assert(pEval_l1 == expected_pEval_l1);
+    assert(inverse_vars.pLiS2Inv[5] == expected_li_s2_inv5);
+    assert(inverse_vars.pZhInv == expected_zhInv);
+    assert(inverse_vars.pDenH1 == expected_pDenH1);
+    assert(inverse_vars.pDenH2 == expected_pDenH2);
+}
 
 #[test]
 fn test_u256_mod() {

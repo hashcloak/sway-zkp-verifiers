@@ -1,28 +1,13 @@
 [[package]]
 name = "core"
-source = "git+https://github.com/FuelLabs/sway?rev#c681835d4427b8c36d9f340c8d4340aaa03591e6"
-
-[[package]]
-name = "core"
-source = "path+from-root-A4E535DF2C0938B1"
+source = "path+from-root-3BD7F3F86B705748"
 
 [[package]]
 name = "fflonk_verifier"
 source = "member"
-dependencies = [
-    "std",
-    "sway-ecc",
-]
+dependencies = ["std"]
 
 [[package]]
 name = "std"
-source = "git+https://github.com/FuelLabs/sway?rev#c681835d4427b8c36d9f340c8d4340aaa03591e6"
-dependencies = ["core path+from-root-A4E535DF2C0938B1"]
-
-[[package]]
-name = "sway-ecc"
-source = "git+https://github.com/hashcloak/sway-ecc?default-branch#6bbd3074c2500e12d2dbe7b0adcc9861ff7b1b9f"
-dependencies = [
-    "core git+https://github.com/FuelLabs/sway?rev#c681835d4427b8c36d9f340c8d4340aaa03591e6",
-    "std",
-]
+source = "git+https://github.com/FuelLabs/sway?rev#0a56930e054e5843ad0aabea7e434b76353241b9"
+dependencies = ["core"]
