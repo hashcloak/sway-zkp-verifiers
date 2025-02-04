@@ -1342,6 +1342,50 @@ fn check_pairing(pe: G1Point, pf: G1Point, pj: G1Point, proof: Proof, challenge:
 
 }
 
+// TODO: [u256;1] must be changed to uint256[<%- Math.max(nPublic, 1) %>]
+fn verify_proof(proof: Proof, pub_signal: [u256;1]) -> bool {
+
+    // Validate that all evaluations ∈ F
+    assert(check_input(proof));
+
+    // Compute the challenges: beta, gamma, xi, alpha and y ∈ F, h1w4/h2w3/h3w3 roots, xiN and zh(xi)
+    let (challenges, roots, zh) = compute_challenges(&proof1, pub_signal[0]);
+
+    // To divide prime fields the Extended Euclidean Algorithm for computing modular inverses is needed.
+    // The Montgomery batch inversion algorithm allow us to compute n inverses reducing to a single one inversion.
+    // To avoid this single inverse computation on-chain, it has been computed in proving time and send it to the verifier.
+    // Therefore, the verifier:
+    //      1) Prepare all the denominators to inverse
+    //      2) Check the inverse sent by the prover it is what it should be
+    //      3) Compute the others inverses using the Montgomery Batched Algorithm using the inverse sent to avoid the inversion operation it does.
+
+    let ( inverse_val, pEval_l1)= compute_inversion(roots, challenges, zh, proof1.batch_inv.x);
+    let mut Eval_l1: [u256;1] = [pEval_l1];
+
+    // Compute Lagrange polynomial evaluations Li(xi)
+    let eval_l1 = compute_lagrange(zh, Eval_l1);
+
+    // Compute public input polynomial evaluation PI(xi) = \sum_i^l -public_input_i·L_i(xi)
+    let pi = compute_pi(eval_l1, pub_signal);
+
+    // Computes r1(y) and r2(y)
+    let r0 = compute_r0(challenges, roots, proof1, inverse_val);
+    let r1 = compute_r1(challenges, roots, proof1, inverse_val, pi);
+    let r2 = compute_r2(challenges, roots, proof1, inverse_val, eval_l1[0]);
+
+    // Compute full batched polynomial commitment [F]_1, group-encoded batch evaluation [E]_1 and the full difference [J]_1
+    let (pf, pe, pj) = compute_fej(challenges, proof1, inverse_val, roots, r0, r1, r2);
+
+    // Validate all evaluations
+    let res = check_pairing(pe, pf, pj, proof1, challenges);
+    
+    if res == 1 {
+        return true;
+    }
+
+    return false;
+}
+
 
 // ONLY FOR TESTING
 // so that we dont have to copy everytime in testing
@@ -1755,4 +1799,12 @@ fn test_check_pairing() {
 
     let res = check_pairing(pe, pf, pj, proof1, challenges);
     assert(res == 1);
+}
+
+
+#[test]
+fn test_verify_proof() {
+    let public_signal: u256 = 0x110d778eaf8b8ef7ac10f8ac239a14df0eb292a8d1b71340d527b26301a9ab08u256;
+    let result = verify_proof(proof1, [public_signal]);
+    assert(result == true);
 }
