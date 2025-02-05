@@ -1,9 +1,5 @@
 contract;
 
-mod lib;
-
-use lib::{G1Point, G2Point};
-use lib::Scalar;
 use std::hash::Hash;
 use std::hash::keccak256;
 use std::bytes::Bytes;
@@ -14,67 +10,56 @@ use std::bytes_conversions::u256::*;
 // the file is taken as a reference as of now
 
 //TODO: needs to be generated dynamically
-const nPublic = 1;
-
+const N_PUBLIC = 1;
 
 const ZERO: u256 = 0;
 // TODO: These parameters needs to be generated per contract
-const n: u32 = 2048; // Domain size
+const N: u32 = 2048; // Domain size
 // Verification Key data
-const k1: u256 = 2; // Plonk k1 multiplicative factor to force distinct cosets of H
-const k2: u256 = 3; // Plonk k2 multiplicative factor to force distinct cosets of H
+const K1: u256 = 2; // Plonk K1 multiplicative factor to force distinct cosets of H
+const K2: u256 = 3; // Plonk K2 multiplicative factor to force distinct cosets of H
 // OMEGAS
 // Omega, Omega^{1/3}
-const w1: u256 = 0x27A358499C5042BB4027FD7A5355D71B8C12C177494F0CAD00A58F9769A2EE2u256;
-const wr: u256 = 0x53D15BDEB61ABF86A2102D3BC623DEEDDFA0637D0A6FB1422BB7F902DBCCB01u256;
+const W1: u256 = 0x27A358499C5042BB4027FD7A5355D71B8C12C177494F0CAD00A58F9769A2EE2u256;
+const WR: u256 = 0x53D15BDEB61ABF86A2102D3BC623DEEDDFA0637D0A6FB1422BB7F902DBCCB01u256;
 // Omega_3, Omega_3^2
-const w3: u256 = 0x30644E72E131A029048B6E193FD84104CC37A73FEC2BC5E9B8CA0B2D36636F23u256;
-const w3_2: u256 = 0xB3C4D79D41A917585BFC41088D8DAAA78B17EA66B99C90DDu256;
+const W3: u256 = 0x30644E72E131A029048B6E193FD84104CC37A73FEC2BC5E9B8CA0B2D36636F23u256;
+const W3_2: u256 = 0xB3C4D79D41A917585BFC41088D8DAAA78B17EA66B99C90DDu256;
 // Omega_4, Omega_4^2, Omega_4^3
-const w4: u256 = 0x30644E72E131A029048B6E193FD841045CEA24F6FD736BEC231204708F703636u256;
-const w4_2: u256 = 0x30644E72E131A029B85045B68181585D2833E84879B9709143E1F593F0000000u256;
-const w4_3: u256 = 0xB3C4D79D41A91758CB49C3517C4604A520CFF123608FC9CBu256;
+const W4: u256 = 0x30644E72E131A029048B6E193FD841045CEA24F6FD736BEC231204708F703636u256;
+const W4_2: u256 = 0x30644E72E131A029B85045B68181585D2833E84879B9709143E1F593F0000000u256;
+const W4_3: u256 = 0xB3C4D79D41A91758CB49C3517C4604A520CFF123608FC9CBu256;
 // Omega_8, Omega_8^2, Omega_8^3, Omega_8^4, Omega_8^5, Omega_8^6, Omega_8^7
-const w8_1: u256 = 0x2B337DE1C8C14F22EC9B9E2F96AFEF3652627366F8170A0A948DAD4AC1BD5E80u256;
-const w8_2: u256 = 0x30644E72E131A029048B6E193FD841045CEA24F6FD736BEC231204708F703636u256;
-const w8_3: u256 = 0x1D59376149B959CCBD157AC850893A6F07C2D99B3852513AB8D01BE8E846A566u256;
-const w8_4: u256 = 0x30644E72E131A029B85045B68181585D2833E84879B9709143E1F593F0000000u256;
-const w8_5: u256 = 0x530D09118705106CBB4A786EAD16926D5D174E181A26686AF5448492E42A181u256;
-const w8_6: u256 = 0xB3C4D79D41A91758CB49C3517C4604A520CFF123608FC9CBu256;
-const w8_7: u256 = 0x130B17119778465CFB3ACAEE30F81DEE20710EAD41671F568B11D9AB07B95A9Bu256;
+const W8_1: u256 = 0x2B337DE1C8C14F22EC9B9E2F96AFEF3652627366F8170A0A948DAD4AC1BD5E80u256;
+const W8_2: u256 = 0x30644E72E131A029048B6E193FD841045CEA24F6FD736BEC231204708F703636u256;
+const W8_3: u256 = 0x1D59376149B959CCBD157AC850893A6F07C2D99B3852513AB8D01BE8E846A566u256;
+const W8_4: u256 = 0x30644E72E131A029B85045B68181585D2833E84879B9709143E1F593F0000000u256;
+const W8_5: u256 = 0x530D09118705106CBB4A786EAD16926D5D174E181A26686AF5448492E42A181u256;
+const W8_6: u256 = 0xB3C4D79D41A91758CB49C3517C4604A520CFF123608FC9CBu256;
+const W8_7: u256 = 0x130B17119778465CFB3ACAEE30F81DEE20710EAD41671F568B11D9AB07B95A9Bu256;
 
 // Verifier preprocessed input C_0(x)·[1]_1
-const C0x: u256 = 0x2BD05595AC6F85F0547E51771E315C64E2619EFAF837A14EF204336B3EC91B71u256;
-const C0y: u256 = 0x124D334C9193216424BC3FB146BF31B2CF4F5AB55A1754390D11F85CEAB6AE47u256;
+const C0X: u256 = 0x2BD05595AC6F85F0547E51771E315C64E2619EFAF837A14EF204336B3EC91B71u256;
+const C0Y: u256 = 0x124D334C9193216424BC3FB146BF31B2CF4F5AB55A1754390D11F85CEAB6AE47u256;
 
 // Verifier preprocessed input x·[1]_2
-const X2x1: u256 = 0x29CFD542842EE76BD236E1D6B836066715306F64BEB777A636FDE8B0D854588Au256;
-const X2x2: u256 = 0x9FB0B69FC88C9A3F0EA92686239AAD7467C5D99785B5565C438F9AD82C07A52u256;
-const X2y1: u256 = 0x1209CDBF8BFC573C289A96A855D5A3706D990DCCDCC5705FA214CE41B6C3ACBDu256;
-const X2y2: u256 = 0x1A1D887CEB374F8E8A94E702AB4B477D8E8FFD837A80A1C5164641256EF08E51u256;
+const X2X1: u256 = 0x29CFD542842EE76BD236E1D6B836066715306F64BEB777A636FDE8B0D854588Au256;
+const X2X2: u256 = 0x9FB0B69FC88C9A3F0EA92686239AAD7467C5D99785B5565C438F9AD82C07A52u256;
+const X2Y1: u256 = 0x1209CDBF8BFC573C289A96A855D5A3706D990DCCDCC5705FA214CE41B6C3ACBDu256;
+const X2Y2: u256 = 0x1A1D887CEB374F8E8A94E702AB4B477D8E8FFD837A80A1C5164641256EF08E51u256;
 
 // Scalar field size
-pub const q: u256 = 0x30644E72E131A029B85045B68181585D2833E84879B9709143E1F593F0000001u256;
+pub const Q: u256 = 0x30644E72E131A029B85045B68181585D2833E84879B9709143E1F593F0000001u256;
 // Base field size
-pub const qf: u256 = 0x30644E72E131A029B85045B68181585D97816A916871CA8D3C208C16D87CFD47u256;
+pub const QF: u256 = 0x30644E72E131A029B85045B68181585D97816A916871CA8D3C208C16D87CFD47u256;
 // [1]_1
-const G1x: u256 = 1;
-const G1y: u256 = 2;
+const G1X: u256 = 1;
+const G1Y: u256 = 2;
 // [1]_2
-pub const G2x1: u256 = 0x1800DEEF121F1E76426A00665E5C4479674322D4F75EDADD46DEBD5CD992F6EDu256;
-pub const G2x2: u256 = 0x198E9393920D483A7260BFB731FB5D25F1AA493335A9E71297E485B7AEF312C2u256;
-pub const G2y1: u256 = 0x12C85EA5DB8C6DEB4AAB71808DCB408FE3D1E7690C43D37B4CE6CC0166FA7DAAu256;
-pub const G2y2: u256 = 0x90689D0585FF075EC9E99AD690C3395BC4B313370B38EF355ACDADCD122975Bu256;
-
-// abi MyContract {
-//     fn test_function() -> bool;
-// }
-
-// impl MyContract for Contract {
-//     fn test_function() -> bool {
-//         true
-//     }
-// }
+pub const G2X1: u256 = 0x1800DEEF121F1E76426A00665E5C4479674322D4F75EDADD46DEBD5CD992F6EDu256;
+pub const G2X2: u256 = 0x198E9393920D483A7260BFB731FB5D25F1AA493335A9E71297E485B7AEF312C2u256;
+pub const G2Y1: u256 = 0x12C85EA5DB8C6DEB4AAB71808DCB408FE3D1E7690C43D37B4CE6CC0166FA7DAAu256;
+pub const G2Y2: u256 = 0x90689D0585FF075EC9E99AD690C3395BC4B313370B38EF355ACDADCD122975Bu256;
 
 // fflonk Proof
 pub struct Proof {
@@ -132,7 +117,7 @@ pub struct Inverse_vars {
 impl u256 {
     fn addmod(self, other: u256) -> u256 {
         let mut res: u256 = 0;
-        asm (rA: res, rB: self, rC: other, rD: q) {
+        asm (rA: res, rB: self, rC: other, rD: Q) {
         wqam rA rB rC rD;
         };
         res
@@ -140,23 +125,109 @@ impl u256 {
 
     fn mulmod(self, other: u256) -> u256 {
         let mut res: u256 = 0;
-        asm (rA: res, rB: self, rC: other, rD: q) {
+        asm (rA: res, rB: self, rC: other, rD: Q) {
         wqmm rA rB rC rD;
         }
         res
     }
 
     fn submod(self, other: u256) -> u256 {
-        let mut res: u256 = q - other;
-        asm (rA: res, rB: self, rD: q) {
+        let mut res: u256 = Q - other;
+        asm (rA: res, rB: self, rD: Q) {
         wqam rA rB rA rD;
         }
         res
     }
 }
 
+// G1
+pub struct G1Point {
+    pub x: u256,
+    pub y: u256,
+}
+
+// G2
+pub struct G2Point {
+    pub x: [u256;2],
+    pub y: [u256;2],
+}
+
+// scalar
+pub struct Scalar {
+    pub x: u256,
+}
+
+
+impl G1Point {
+
+    // https://github.com/FuelLabs/fuel-specs/blob/abfd0bb29fab605e0e067165363581232c40e0bb/src/fuel-vm/instruction-set.md#ecop-elliptic-curve-point-operation
+    pub fn point_add(p1: G1Point, p2: G1Point) -> G1Point {
+        let mut input: [u256; 4] = [0; 4];
+        let mut output: [u256; 2] = [0; 2];
+
+        // prepare input
+        input[0] = p1.x;
+        input[1] = p1.y;
+        input[2] = p2.x;
+        input[3] = p2.y;
+
+        // ecc addition opcode
+        asm(rA: output, rB: 0, rC: 0, rD: input) {
+            ecop rA rB rC rD;
+        }
+        
+        G1Point{
+            x: output[0],
+            y: output[1],
+        }
+    }
+
+    // https://github.com/FuelLabs/fuel-specs/blob/abfd0bb29fab605e0e067165363581232c40e0bb/src/fuel-vm/instruction-set.md#ecop-elliptic-curve-point-operation
+    pub fn scalar_mul(p: G1Point, s: Scalar) -> G1Point {
+        let mut input: [u256; 3] = [0; 3];
+        let mut output: [u256; 2] = [0; 2];
+
+        // prepare input
+        input[0] = p.x;
+        input[1] = p.y;
+        input[2] = s.x;
+
+        // ecc multiplication opcode
+        asm(rA: output, rB: 0, rC: 1, rD: input) {
+            ecop rA rB rC rD;
+        }
+
+        G1Point{
+            x: output[0],
+            y: output[1],
+        }
+    }
+
+    // Check that the point is on the curve
+    // y^2 = x^3 + 3
+    pub fn check_point_belongs_to_bn128_curve(p: G1Point) -> bool {
+
+        let mut res: u256 = 0;
+        // y^2 mod QF
+        asm(rA: res, rB: p.y, rC: p.y, rD: QF) {
+            wqmm rA rB rC rD;
+        }
+        
+        // x^3 + 3 mod QF
+        let mut res_x: u256 = 0;
+        asm(rA: res_x, rB: p.x, rC: p.x, rD: QF, rE: 0x3u256) {
+            wqmm rA rB rC rD;
+            wqmm rA rA rB rD;
+            wqam rA rA rE rD;
+        }
+
+        // check if y^2 == x^3 + 3 mod QF
+        res_x == res
+    }
+}
+
 pub fn check_field(v: Scalar) -> bool {
-    v.x < q
+    v.x < Q
 }
 
 fn check_input(proof: Proof) -> bool {
@@ -245,19 +316,19 @@ fn check_input(proof: Proof) -> bool {
     true
 }
 
-//TODO: pub_signals: [u256;1] change to max(1, nPublic)
+//TODO: pub_signals: [u256;1] change to max(1, N_PUBLIC)
 // challenges = (alpha, beta, gamma, y, xi_seed, xi_seed^2, xi)
 // roots is needed for later computations
 // last u256 is Z_H(xi)
 fn compute_challenges(proof: &Proof, pub_signals: [u256;1]) -> (Challenges, Roots, u256) {
     let mut transcript: Bytes = Bytes::new();
 
-    transcript.append(C0x.to_be_bytes());
-    transcript.append(C0y.to_be_bytes());
+    transcript.append(C0X.to_be_bytes());
+    transcript.append(C0Y.to_be_bytes());
     transcript.append(pub_signals[0].to_be_bytes());
 
     let mut i = 1;
-    while i < nPublic {
+    while i < N_PUBLIC {
         transcript.append(pub_signals[i].to_be_bytes());
         i += 1;
     }
@@ -268,14 +339,10 @@ fn compute_challenges(proof: &Proof, pub_signals: [u256;1]) -> (Challenges, Root
     let mut beta = u256::from(keccak256(transcript));
     // TODO the mod function result into failing of test. why?
     // workaround: using the 256bit addmod 
-    asm (rA: beta, rC: ZERO, rD: q) {
-        wqam rA rA rC rD;
-    };
+    beta = beta.addmod(ZERO);
 
     let mut gamma = u256::from(keccak256(beta.to_be_bytes()));
-    asm (rA: gamma, rB: gamma, rC: ZERO, rD: q) {
-        wqam rA rB rC rD;
-    };
+    gamma = gamma.addmod(ZERO);
 
     let mut transcript2 = Bytes::new();
 
@@ -285,111 +352,38 @@ fn compute_challenges(proof: &Proof, pub_signals: [u256;1]) -> (Challenges, Root
 
     // Get xiSeed & xiSeed2
     let mut xi_seed = u256::from(keccak256(transcript2));
-    asm (rA: xi_seed, rC: ZERO, rD: q) {
-        wqam rA rA rC rD;
-    };
+    xi_seed = xi_seed.addmod(ZERO);
 
-    let mut xi_seed2: u256 = 0;
-    asm (rA: xi_seed2, rB: xi_seed, rC: xi_seed, rD: q) {
-        wqmm rA rB rC rD;
-    };
+    let xi_seed2: u256 = xi_seed.mulmod(xi_seed);
 
     // Compute roots.S0.h0w8
-    let mut H0w8_0: u256 = 0;
-    asm (rA: H0w8_0, rB: xi_seed2, rC: xi_seed, rD: q) {
-        wqmm rA rB rC rD;
-    };
-
-    let mut H0w8_1: u256 = 0;
-    asm (rA: H0w8_1, rB: H0w8_0, rC: w8_1, rD: q) {
-        wqmm rA rB rC rD;
-    };
-
-    let mut H0w8_2: u256 = 0;
-    asm (rA: H0w8_2, rB: H0w8_0, rC: w8_2, rD: q) {
-        wqmm rA rB rC rD;
-    };
-
-    let mut H0w8_3: u256 = 0;
-    asm (rA: H0w8_3, rB: H0w8_0, rC: w8_3, rD: q) {
-        wqmm rA rB rC rD;
-    };
-
-    let mut H0w8_4: u256 = 0;
-    asm (rA: H0w8_4, rB: H0w8_0, rC: w8_4, rD: q) {
-        wqmm rA rB rC rD;
-    };
-
-    let mut H0w8_5: u256 = 0;
-    asm (rA: H0w8_5, rB: H0w8_0, rC: w8_5, rD: q) {
-        wqmm rA rB rC rD;
-    };
-
-    let mut H0w8_6: u256 = 0;
-    asm (rA: H0w8_6, rB: H0w8_0, rC: w8_6, rD: q) {
-        wqmm rA rB rC rD;
-    };
-
-    let mut H0w8_7: u256 = 0;
-    asm (rA: H0w8_7, rB: H0w8_0, rC: w8_7, rD: q) {
-        wqmm rA rB rC rD;
-    };
+    let H0w8_0: u256 = xi_seed2.mulmod(xi_seed);
+    let H0w8_1: u256 = H0w8_0.mulmod(W8_1);
+    let H0w8_2: u256 = H0w8_0.mulmod(W8_2);
+    let H0w8_3: u256 = H0w8_0.mulmod(W8_3);
+    let H0w8_4: u256 = H0w8_0.mulmod(W8_4);
+    let H0w8_5: u256 = H0w8_0.mulmod(W8_5);
+    let H0w8_6: u256 = H0w8_0.mulmod(W8_6);
+    let H0w8_7: u256 = H0w8_0.mulmod(W8_7);
 
     // Compute roots.S1.h1w4
-    let mut H1w4_0: u256 = 0;
-    asm (rA: H1w4_0, rB: H0w8_0, rC: H0w8_0, rD: q) {
-        wqmm rA rB rC rD;
-    };
-
-    let mut H1w4_1: u256 = 0;
-    asm (rA: H1w4_1, rB: H1w4_0, rC: w4, rD: q) {
-        wqmm rA rB rC rD;
-    };
-
-    let mut H1w4_2: u256 = 0;
-    asm (rA: H1w4_2, rB: H1w4_0, rC: w4_2, rD: q) {
-        wqmm rA rB rC rD;
-    };
-
-    let mut H1w4_3: u256 = 0;
-    asm (rA: H1w4_3, rB: H1w4_0, rC: w4_3, rD: q) {
-        wqmm rA rB rC rD;
-    };
+    let H1w4_0: u256 = H0w8_0.mulmod(H0w8_0);
+    let H1w4_1: u256 = H1w4_0.mulmod(W4);
+    let H1w4_2: u256 = H1w4_0.mulmod(W4_2);
+    let H1w4_3: u256 = H1w4_0.mulmod(W4_3);
 
     // Compute roots.S2.h2w3
-    let mut H2w3_0: u256 = 0;
-    asm (rA: H2w3_0, rB: H1w4_0, rC: xi_seed2, rD: q) {
-        wqmm rA rB rC rD;
-    };
-
-    let mut H2w3_1: u256 = 0;
-    asm (rA: H2w3_1, rB: H2w3_0, rC: w3, rD: q) {
-        wqmm rA rB rC rD;
-    };
-
-    let mut H2w3_2: u256 = 0;
-    asm (rA: H2w3_2, rB: H2w3_0, rC: w3_2, rD: q) {
-        wqmm rA rB rC rD;
-    };
+    let H2w3_0: u256 = H1w4_0.mulmod(xi_seed2);
+    let H2w3_1: u256 = H2w3_0.mulmod(W3);
+    let H2w3_2: u256 = H2w3_0.mulmod(W3_2);
 
     // Compute roots.S2.h2w3
-    let mut H3w3_0: u256 = 0;
-    asm (rA: H3w3_0, rB: H2w3_0, rC: wr, rD: q) {
-        wqmm rA rB rC rD;
-    };
-
-    let mut H3w3_1: u256 = 0;
-    asm (rA: H3w3_1, rB: H3w3_0, rC: w3, rD: q) {
-        wqmm rA rB rC rD;
-    };
-
-    let mut H3w3_2: u256 = 0;
-    asm (rA: H3w3_2, rB: H3w3_0, rC: w3_2, rD: q) {
-        wqmm rA rB rC rD;
-    };
+    let H3w3_0: u256 = H2w3_0.mulmod(WR);
+    let H3w3_1: u256 = H3w3_0.mulmod(W3);
+    let H3w3_2: u256 = H3w3_0.mulmod(W3_2);
 
     let mut xin: u256 = 0;
-    asm (rA: xin, rB: H2w3_0, rC: H2w3_0, rD: q) {
+    asm (rA: xin, rB: H2w3_0, rC: H2w3_0, rD: Q) {
         wqmm rA rB rC rD;
         wqmm rA rA rC rD;
     };
@@ -401,23 +395,16 @@ fn compute_challenges(proof: &Proof, pub_signals: [u256;1]) -> (Challenges, Root
     let power = 11;
     let mut i = 0;
     while i < power {
-        xin = asm (rA: xin, rB: xin, rC: xin, rD: q) {
+        xin = asm (rA: xin, rB: xin, rC: xin, rD: Q) {
             wqmm rA rB rC rD;
             rA: u256
         };
         i = i + 1;
     }
 
-    let q_minus_one = q - 1;
-
-    xin = asm (rA: xin, rB: xin, rC: q_minus_one, rD: q) {
-        wqam rA rB rC rD;
-        rA: u256
-    };
+    xin = xin.addmod(Q-1);
 
     let Zh = xin;
-    // let ZhInv = xin; // We will invert later together with lagrange pols
-
 
     let mut transcript3 = Bytes::new();
     transcript3.append(xi_seed.to_be_bytes());
@@ -438,10 +425,8 @@ fn compute_challenges(proof: &Proof, pub_signals: [u256;1]) -> (Challenges, Root
     transcript3.append(proof.T_2_omega.x.to_be_bytes());
     
     // Compute challenge.alpha
-    let alpha = u256::from(keccak256(transcript3));
-    asm (rA: alpha, rB: alpha, rC: ZERO, rD: q) {
-        wqam rA rB rC rD;
-    };
+    let mut alpha = u256::from(keccak256(transcript3));
+    alpha = alpha.addmod(ZERO);
 
     let mut transcript4 = Bytes::new();
     transcript4.append(alpha.to_be_bytes());
@@ -449,10 +434,8 @@ fn compute_challenges(proof: &Proof, pub_signals: [u256;1]) -> (Challenges, Root
     transcript4.append(proof.W.y.to_be_bytes());
 
     // Compute challenge.y
-    let Y = u256::from(keccak256(transcript4));
-    asm (rA: Y, rB: Y, rC: ZERO, rD: q) {
-        wqam rA rB rC rD;
-    };
+    let mut Y = u256::from(keccak256(transcript4));
+    Y = Y.addmod(ZERO);
 
     ( Challenges{ 
         alpha: alpha, 
@@ -481,7 +464,7 @@ fn compute_li_s0(roots: Roots, challenges: Challenges) -> [u256; 8] {
 
     let mut den1: u256 = 1;
     let eight: u256 = 8;
-    asm (rA: den1, rC: root0, rD: q, rE: eight) {
+    asm (rA: den1, rC: root0, rD: Q, rE: eight) {
         wqmm rA rA rC rD;
         wqmm rA rA rC rD;
         wqmm rA rA rC rD;
@@ -493,97 +476,97 @@ fn compute_li_s0(roots: Roots, challenges: Challenges) -> [u256; 8] {
     
     // i = 0
     let mut den2: u256 = roots.s0_h0w8[0];
-    let mut den3: u256 = q - roots.s0_h0w8[0];
+    let mut den3: u256 = Q - roots.s0_h0w8[0];
 
-    asm (rA: den3, rC: y, rD: q) {
+    asm (rA: den3, rC: y, rD: Q) {
         wqam rA rA rC rD;
     }
 
-    asm (rA: li_s0_inv[0], rB: den1, rC: den2, rD: den3, rE: q) {
+    asm (rA: li_s0_inv[0], rB: den1, rC: den2, rD: den3, rE: Q) {
         wqmm rA rB rC rE;
         wqmm rA rA rD rE;
     }
 
     // i = 1
     let mut den2: u256 = roots.s0_h0w8[7];
-    let mut den3: u256 = q - roots.s0_h0w8[1]; 
-    asm (rA: den3, rC: challenges.y, rD: q) {
+    let mut den3: u256 = Q - roots.s0_h0w8[1]; 
+    asm (rA: den3, rC: challenges.y, rD: Q) {
         wqam rA rA rC rD;
     }    
 
-    asm (rA: li_s0_inv[1], rB: den1, rC: den2, rD: den3, rE: q) {
+    asm (rA: li_s0_inv[1], rB: den1, rC: den2, rD: den3, rE: Q) {
         wqmm rA rB rC rE;
         wqmm rA rA rD rE;
     }
 
     // i = 2
     let mut den2: u256 = roots.s0_h0w8[6];
-    let mut den3: u256 = q - roots.s0_h0w8[2]; 
-    asm (rA: den3, rC: challenges.y, rD: q) {
+    let mut den3: u256 = Q - roots.s0_h0w8[2]; 
+    asm (rA: den3, rC: challenges.y, rD: Q) {
         wqam rA rA rC rD;
     }    
 
-    asm (rA: li_s0_inv[2], rB: den1, rC: den2, rD: den3, rE: q) {
+    asm (rA: li_s0_inv[2], rB: den1, rC: den2, rD: den3, rE: Q) {
         wqmm rA rB rC rE;
         wqmm rA rA rD rE;
     }
 
     // i = 3
     let mut den2: u256 = roots.s0_h0w8[5];
-    let mut den3: u256 = q - roots.s0_h0w8[3]; 
-    asm (rA: den3, rC: challenges.y, rD: q) {
+    let mut den3: u256 = Q - roots.s0_h0w8[3]; 
+    asm (rA: den3, rC: challenges.y, rD: Q) {
         wqam rA rA rC rD;
     }    
 
-    asm (rA: li_s0_inv[3], rB: den1, rC: den2, rD: den3, rE: q) {
+    asm (rA: li_s0_inv[3], rB: den1, rC: den2, rD: den3, rE: Q) {
         wqmm rA rB rC rE;
         wqmm rA rA rD rE;
     }
 
     // i = 4
     let mut den2: u256 = roots.s0_h0w8[4];
-    let mut den3: u256 = q - roots.s0_h0w8[4]; 
-    asm (rA: den3, rC: challenges.y, rD: q) {
+    let mut den3: u256 = Q - roots.s0_h0w8[4]; 
+    asm (rA: den3, rC: challenges.y, rD: Q) {
         wqam rA rA rC rD;
     }    
 
-    asm (rA: li_s0_inv[4], rB: den1, rC: den2, rD: den3, rE: q) {
+    asm (rA: li_s0_inv[4], rB: den1, rC: den2, rD: den3, rE: Q) {
         wqmm rA rB rC rE;
         wqmm rA rA rD rE;
     }
 
     // i = 5
     let mut den2: u256 = roots.s0_h0w8[3];
-    let mut den3: u256 = q - roots.s0_h0w8[5]; 
-    asm (rA: den3, rC: challenges.y, rD: q) {
+    let mut den3: u256 = Q - roots.s0_h0w8[5]; 
+    asm (rA: den3, rC: challenges.y, rD: Q) {
         wqam rA rA rC rD;
     }    
 
-    asm (rA: li_s0_inv[5], rB: den1, rC: den2, rD: den3, rE: q) {
+    asm (rA: li_s0_inv[5], rB: den1, rC: den2, rD: den3, rE: Q) {
         wqmm rA rB rC rE;
         wqmm rA rA rD rE;
     }
 
     // i = 6
     let mut den2: u256 = roots.s0_h0w8[2];
-    let mut den3: u256 = q - roots.s0_h0w8[6]; 
-    asm (rA: den3, rC: challenges.y, rD: q) {
+    let mut den3: u256 = Q - roots.s0_h0w8[6]; 
+    asm (rA: den3, rC: challenges.y, rD: Q) {
         wqam rA rA rC rD;
     }    
 
-    asm (rA: li_s0_inv[6], rB: den1, rC: den2, rD: den3, rE: q) {
+    asm (rA: li_s0_inv[6], rB: den1, rC: den2, rD: den3, rE: Q) {
         wqmm rA rB rC rE;
         wqmm rA rA rD rE;
     }
 
     // i = 7
     let mut den2: u256 = roots.s0_h0w8[1];
-    let mut den3: u256 = q - roots.s0_h0w8[7]; 
-    asm (rA: den3, rC: challenges.y, rD: q) {
+    let mut den3: u256 = Q - roots.s0_h0w8[7]; 
+    asm (rA: den3, rC: challenges.y, rD: Q) {
         wqam rA rA rC rD;
     }    
 
-    asm (rA: li_s0_inv[7], rB: den1, rC: den2, rD: den3, rE: q) {
+    asm (rA: li_s0_inv[7], rB: den1, rC: den2, rD: den3, rE: Q) {
         wqmm rA rB rC rE;
         wqmm rA rA rD rE;
     }
@@ -599,7 +582,7 @@ fn compute_li_s1(roots: Roots, challenges: Challenges) -> [u256; 4] {
 
     let mut den1: u256 = 1;
     let four: u256 = 4;
-    asm (rA: den1, rB: root0, rC: four, rE: q) {
+    asm (rA: den1, rB: root0, rC: four, rE: Q) {
         wqmm rA rA rB rE;
         wqmm rA rA rB rE;
         wqmm rA rA rC rE;
@@ -607,48 +590,48 @@ fn compute_li_s1(roots: Roots, challenges: Challenges) -> [u256; 4] {
 
     // i = 0
     let mut den2 = roots.s1_h1w4[0];
-    let mut den3 = q - roots.s1_h1w4[0]; 
-    asm (rA: den3, rC: y, rD: q) {
+    let mut den3 = Q - roots.s1_h1w4[0]; 
+    asm (rA: den3, rC: y, rD: Q) {
         wqam rA rA rC rD;
     }    
 
-    asm (rA: li_s1_inv[0], rB: den1, rC: den2, rD: den3, rE: q) {
+    asm (rA: li_s1_inv[0], rB: den1, rC: den2, rD: den3, rE: Q) {
         wqmm rA rB rC rE;
         wqmm rA rA rD rE;
     }
 
     // i = 1
     let mut den2 = roots.s1_h1w4[3];
-    let mut den3 = q - roots.s1_h1w4[1]; 
-    asm (rA: den3, rC: y, rD: q) {
+    let mut den3 = Q - roots.s1_h1w4[1]; 
+    asm (rA: den3, rC: y, rD: Q) {
         wqam rA rA rC rD;
     }    
 
-    asm (rA: li_s1_inv[1], rB: den1, rC: den2, rD: den3, rE: q) {
+    asm (rA: li_s1_inv[1], rB: den1, rC: den2, rD: den3, rE: Q) {
         wqmm rA rB rC rE;
         wqmm rA rA rD rE;
     }
 
     // i = 2
     let mut den2 = roots.s1_h1w4[2];
-    let mut den3 = q - roots.s1_h1w4[2]; 
-    asm (rA: den3, rC: y, rD: q) {
+    let mut den3 = Q - roots.s1_h1w4[2]; 
+    asm (rA: den3, rC: y, rD: Q) {
         wqam rA rA rC rD;
     }    
 
-    asm (rA: li_s1_inv[2], rB: den1, rC: den2, rD: den3, rE: q) {
+    asm (rA: li_s1_inv[2], rB: den1, rC: den2, rD: den3, rE: Q) {
         wqmm rA rB rC rE;
         wqmm rA rA rD rE;
     }
 
     // i = 3
     let mut den2 = roots.s1_h1w4[1];
-    let mut den3 = q - roots.s1_h1w4[3]; 
-    asm (rA: den3, rC: y, rD: q) {
+    let mut den3 = Q - roots.s1_h1w4[3]; 
+    asm (rA: den3, rC: y, rD: Q) {
         wqam rA rA rC rD;
     }    
 
-    asm (rA: li_s1_inv[3], rB: den1, rC: den2, rD: den3, rE: q) {
+    asm (rA: li_s1_inv[3], rB: den1, rC: den2, rD: den3, rE: Q) {
         wqmm rA rB rC rE;
         wqmm rA rA rD rE;
     }
@@ -665,104 +648,104 @@ fn compute_li_s2(roots: Roots, challenges: Challenges) -> [u256; 6] {
     let mut t1: u256 = roots.s2_h2w3[0];
     let mut t2: u256 = 0;
     let three: u256 = 3;
-    asm (rA: t1, rB: three, rC: q, rD: t2, dE: challenges.xi, dF: w1) {
+    asm (rA: t1, rB: three, rC: Q, rD: t2, dE: challenges.xi, dF: W1) {
         wqmm rA rA rB rC;
         wqmm rD dE dF rC;
     }
 
-    let mut t3: u256 = q - t2;
+    let mut t3: u256 = Q - t2;
     t3 = t3.addmod(challenges.xi);
     let mut den1: u256 = 0;
 
-    asm (rA: den1, rB: t1, rC: t3, rD: q) {
+    asm (rA: den1, rB: t1, rC: t3, rD: Q) {
         wqmm rA rB rC rD;
     }
 
     // i = 0
     let mut den2: u256 = roots.s2_h2w3[0];
-    let mut den3: u256 = q - roots.s2_h2w3[0];
+    let mut den3: u256 = Q - roots.s2_h2w3[0];
 
-    asm (rA: den3, rC: y, rD: q) {
+    asm (rA: den3, rC: y, rD: Q) {
         wqam rA rA rC rD;
     }
 
-    asm (rA: li_s2_inv[0], rB: den1, rC: den2, rD: den3, rE: q) {
+    asm (rA: li_s2_inv[0], rB: den1, rC: den2, rD: den3, rE: Q) {
         wqmm rA rB rC rE;
         wqmm rA rA rD rE;
     };
 
     // i = 1
     let mut den2: u256 = roots.s2_h2w3[2];
-    let mut den3: u256 = q - roots.s2_h2w3[1]; 
-    asm (rA: den3, rC: y, rD: q) {
+    let mut den3: u256 = Q - roots.s2_h2w3[1]; 
+    asm (rA: den3, rC: y, rD: Q) {
         wqam rA rA rC rD;
     }
 
-    asm (rA: li_s2_inv[1], rB: den1, rC: den2, rD: den3, rE: q) {
+    asm (rA: li_s2_inv[1], rB: den1, rC: den2, rD: den3, rE: Q) {
         wqmm rA rB rC rE;
         wqmm rA rA rD rE;
     };
 
     // i = 2
     let mut den2: u256 = roots.s2_h2w3[1];
-    let mut den3: u256 = q - roots.s2_h2w3[2]; 
-    asm (rA: den3, rC: y, rD: q) {
+    let mut den3: u256 = Q - roots.s2_h2w3[2]; 
+    asm (rA: den3, rC: y, rD: Q) {
         wqam rA rA rC rD;
     }
 
-    asm (rA: li_s2_inv[2], rB: den1, rC: den2, rD: den3, rE: q) {
+    asm (rA: li_s2_inv[2], rB: den1, rC: den2, rD: den3, rE: Q) {
         wqmm rA rB rC rE;
         wqmm rA rA rD rE;
     };
 
     let mut t1: u256 = roots.s2_h3w3[0];
-    let mut t2: u256 = 0; // xi*w1
+    let mut t2: u256 = 0; // xi*W1
     let three: u256 = 3;
-    asm (rA: t1, rB: three, rC: q, rD: t2, dE: challenges.xi, dF: w1) {
+    asm (rA: t1, rB: three, rC: Q, rD: t2, dE: challenges.xi, dF: W1) {
         wqmm rA rA rB rC;
         wqmm rD dE dF rC;
     }
 
-    let mut t3: u256 = q - challenges.xi;
+    let mut t3: u256 = Q - challenges.xi;
     let mut den1: u256 = 0;
 
-    asm (rA: den1, rB: t1, rC: t3, rD: q, rE: t2) {
+    asm (rA: den1, rB: t1, rC: t3, rD: Q, rE: t2) {
         wqam rA rE rC rD;
         wqmm rA rA rB rD;
     };
 
     // i = 0
     let mut den2: u256 = roots.s2_h3w3[0];
-    let mut den3: u256 = q - roots.s2_h3w3[0]; 
-    asm (rA: den3, rC: y, rD: q) {
+    let mut den3: u256 = Q - roots.s2_h3w3[0]; 
+    asm (rA: den3, rC: y, rD: Q) {
         wqam rA rA rC rD;
     }
 
-    asm (rA: li_s2_inv[3], rB: den1, rC: den2, rD: den3, rE: q) {
+    asm (rA: li_s2_inv[3], rB: den1, rC: den2, rD: den3, rE: Q) {
         wqmm rA rB rC rE;
         wqmm rA rA rD rE;
     };
 
     // i = 1
     let mut den2: u256 = roots.s2_h3w3[2];
-    let mut den3: u256 = q - roots.s2_h3w3[1]; 
-    asm (rA: den3, rC: y, rD: q) {
+    let mut den3: u256 = Q - roots.s2_h3w3[1]; 
+    asm (rA: den3, rC: y, rD: Q) {
         wqam rA rA rC rD;
     }
 
-    asm (rA: li_s2_inv[4], rB: den1, rC: den2, rD: den3, rE: q) {
+    asm (rA: li_s2_inv[4], rB: den1, rC: den2, rD: den3, rE: Q) {
         wqmm rA rB rC rE;
         wqmm rA rA rD rE;
     };
 
     // i = 2
     let mut den2: u256 = roots.s2_h3w3[1];
-    let mut den3: u256 = q - roots.s2_h3w3[2]; 
-    asm (rA: den3, rC: y, rD: q) {
+    let mut den3: u256 = Q - roots.s2_h3w3[2]; 
+    asm (rA: den3, rC: y, rD: Q) {
         wqam rA rA rC rD;
     }
 
-    asm (rA: li_s2_inv[5], rB: den1, rC: den2, rD: den3, rE: q) {
+    asm (rA: li_s2_inv[5], rB: den1, rC: den2, rD: den3, rE: Q) {
         wqmm rA rB rC rE;
         wqmm rA rA rD rE;
     };
@@ -772,12 +755,12 @@ fn compute_li_s2(roots: Roots, challenges: Challenges) -> [u256; 6] {
 
 
 
-// TODO: change pEval_l: [u256;1] to max(1, nPublic)
+// TODO: change pEval_l: [u256;1] to max(1, N_PUBLIC)
 // pZhInv, pDenH1, pDenH2, pLiS0Inv, pLiS1Inv, pLiS2Inv in order
 fn inverse_array(ref mut array: Inverse_vars, ref mut pEval_l: [u256;1], pEval_inv: u256) -> (Inverse_vars, [u256;1]){
     
     //TODO: this size length should the res array
-    let size = 21 + u64::max(nPublic, 1);
+    let size = 21 + u64::max(N_PUBLIC, 1);
 
     let mut res: [u256; 22] = [0; 22];
     let mut acc = array.pZhInv;
@@ -963,49 +946,49 @@ fn inverse_array(ref mut array: Inverse_vars, ref mut pEval_l: [u256;1], pEval_i
 
 }
 
-// TODO: change return type: [u256;1] to max(1, nPublic)
+// TODO: change return type: [u256;1] to max(1, N_PUBLIC)
 fn compute_inversion(roots: Roots, challenges: Challenges, zh_inv: u256, eval_inv: u256)  -> (Inverse_vars, [u256;1]){
 
     // 1/((y - h1) (y - h1w4) (y - h1w4_2) (y - h1w4_3))
     let y = challenges.y;
-    let mut w: u256 = q - roots.s1_h1w4[0];
+    let mut w: u256 = Q - roots.s1_h1w4[0];
     w = w.addmod(y);
 
-    let mut t = q - roots.s1_h1w4[1];
+    let mut t = Q - roots.s1_h1w4[1];
     t = t.addmod(y);
     w = w.mulmod(t);
 
-    let mut t = q - roots.s1_h1w4[2];
+    let mut t = Q - roots.s1_h1w4[2];
     t = t.addmod(y);
     w = w.mulmod(t);
 
-    let mut t = q - roots.s1_h1w4[3];
+    let mut t = Q - roots.s1_h1w4[3];
     t = t.addmod(y);
     w = w.mulmod(t);
 
     let den_h1 = w;
 
     // 1/((y - h2) (y - h2w3) (y - h2w3_2) (y - h3) (y - h3w3) (y - h3w3_2))
-    let mut w: u256 = q - roots.s2_h3w3[0];
+    let mut w: u256 = Q - roots.s2_h3w3[0];
     w = w.addmod(y);
 
-    let mut t = q - roots.s2_h3w3[1];
+    let mut t = Q - roots.s2_h3w3[1];
     t = t.addmod(y);
     w = w.mulmod(t);
 
-    let mut t = q - roots.s2_h3w3[2];
+    let mut t = Q - roots.s2_h3w3[2];
     t = t.addmod(y);
     w = w.mulmod(t);
 
-    let mut t = q - roots.s2_h2w3[0];
+    let mut t = Q - roots.s2_h2w3[0];
     t = t.addmod(y);
     w = w.mulmod(t);
 
-    let mut t = q - roots.s2_h2w3[1];
+    let mut t = Q - roots.s2_h2w3[1];
     t = t.addmod(y);
     w = w.mulmod(t);
 
-    let mut t = q - roots.s2_h2w3[2];
+    let mut t = Q - roots.s2_h2w3[2];
     t = t.addmod(y);
     w = w.mulmod(t);
 
@@ -1019,14 +1002,14 @@ fn compute_inversion(roots: Roots, challenges: Challenges, zh_inv: u256, eval_in
     let xi = challenges.xi;
 
     let mut i = 1;
-    // TODO: change pEval_l: [u256;1] to max(1, nPublic)
+    // TODO: change pEval_l: [u256;1] to max(1, N_PUBLIC)
 
     let mut pEval_l: [u256;1] = [0;1];
-    while i <= u64::max(nPublic, 1) {
-        pEval_l[i-1] = u256::from(n).mulmod(xi.submod(w));
+    while i <= u64::max(N_PUBLIC, 1) {
+        pEval_l[i-1] = u256::from(N).mulmod(xi.submod(w));
 
-        if i < u64::max(nPublic, 1) {
-            w = w.mulmod(w1);
+        if i < u64::max(N_PUBLIC, 1) {
+            w = w.mulmod(W1);
         }
         i = i + 1;
     }
@@ -1044,12 +1027,12 @@ fn compute_inversion(roots: Roots, challenges: Challenges, zh_inv: u256, eval_in
 }
 
 //TODO
-// instead of pEval: [u256; 1] it will be [u256;max(nPublic, 1)]
+// instead of pEval: [u256; 1] it will be [u256;max(N_PUBLIC, 1)]
 fn compute_lagrange(zh: u256, ref mut pEval: [u256; 1]) -> [u256;1]{
     let mut w: u256 = 1;
 
     let mut i: u64 = 1;
-    while (i <= u64::max(nPublic, 1)) {
+    while (i <= u64::max(N_PUBLIC, 1)) {
         if i == 1 {
             pEval[0] = pEval[0].mulmod(zh);
         }
@@ -1058,8 +1041,8 @@ fn compute_lagrange(zh: u256, ref mut pEval: [u256; 1]) -> [u256;1]{
             pEval[i - 1] = w.mulmod(pEval[i - 1].mulmod(zh))
         }
 
-        if i < u64::max(nPublic, 1) {
-            w = w.mulmod(w1);
+        if i < u64::max(N_PUBLIC, 1) {
+            w = w.mulmod(W1);
         }
 
         i = i + 1;
@@ -1069,14 +1052,14 @@ fn compute_lagrange(zh: u256, ref mut pEval: [u256; 1]) -> [u256;1]{
 }
 
 //TODO
-// instead of pEval: [u256; 1] it will be [u256;max(nPublic, 1)]
+// instead of pEval: [u256; 1] it will be [u256;max(N_PUBLIC, 1)]
 // same for pPub
 fn compute_pi(pEval: [u256;1], p_pub: [u256;1]) -> u256{
     let mut pi: u256 = 0;
     pi = pi.submod(pEval[0].mulmod(p_pub[0]));
 
     let mut i = 1;
-    while i < nPublic {
+    while i < N_PUBLIC {
         pi = pi.submod(pEval[i].mulmod(p_pub[i]));
 
         i = i + 1;
@@ -1193,12 +1176,12 @@ fn compute_r2(challenge: Challenges, roots: Roots, proof: Proof, inverse_vars: I
     num2 = num2.mulmod(y);
     num2 = num2.mulmod(y);
     num2 = num2.mulmod(y);
-    num2 = num2.mulmod(u256::addmod(challenge.xi.mulmod(w1), challenge.xi));
+    num2 = num2.mulmod(u256::addmod(challenge.xi.mulmod(W1), challenge.xi));
 
     num = num.submod(num2);
 
 
-    num2 = u256::mulmod(u256::mulmod(challenge.xi, w1), challenge.xi);
+    num2 = u256::mulmod(u256::mulmod(challenge.xi, W1), challenge.xi);
 
     num = num.addmod(num2);
 
@@ -1209,8 +1192,8 @@ fn compute_r2(challenge: Challenges, roots: Roots, proof: Proof, inverse_vars: I
     let mut gamma = challenge.gamma;
 
     t2 = proof.a.x.addmod(beta_xi.addmod(gamma));
-    t2 = t2.mulmod(proof.b.x.addmod(u256::addmod(beta_xi.mulmod(k1), gamma)));
-    t2 = t2.mulmod(proof.c.x.addmod(u256::addmod(beta_xi.mulmod(k2), gamma)));
+    t2 = t2.mulmod(proof.b.x.addmod(u256::addmod(beta_xi.mulmod(K1), gamma)));
+    t2 = t2.mulmod(proof.c.x.addmod(u256::addmod(beta_xi.mulmod(K2), gamma)));
     t2 = t2.mulmod(proof.z.x);
 
     //Let's use t1 as a temporal variable to save one local
@@ -1280,8 +1263,8 @@ fn compute_fej(challenge: Challenges, proof: Proof, inverse_vars: Inverse_vars, 
     let quotient2: u256 = challenge.alpha.mulmod(challenge.alpha.mulmod(numerator.mulmod(inverse_vars.pDenH2)));
 
     let pf: G1Point = G1Point {
-        x: C0x,
-        y: C0y,
+        x: C0X,
+        y: C0Y,
     };
 
     // Compute full batched polynomial commitment [F]_1
@@ -1292,8 +1275,8 @@ fn compute_fej(challenge: Challenges, proof: Proof, inverse_vars: Inverse_vars, 
     let pf = G1Point::point_add(pf, G1Point::scalar_mul(proof.C2, q2));
 
     let g1: G1Point = G1Point {
-        x: G1x,
-        y: G1y,
+        x: G1X,
+        y: G1Y,
     };
 
     let s1: Scalar = Scalar {
@@ -1321,13 +1304,13 @@ fn check_pairing(pe: G1Point, pf: G1Point, pj: G1Point, proof: Proof, challenge:
     // Compute -E
     let pe = G1Point {
         x: pe.x,
-        y: qf - pe.y,
+        y: QF - pe.y,
     };
 
     // Compute -J
     let pj = G1Point {
         x: pj.x,
-        y: qf - pj.y,
+        y: QF - pj.y,
     };
 
     // F = F - E - J + y·W2
@@ -1339,21 +1322,21 @@ fn check_pairing(pe: G1Point, pf: G1Point, pj: G1Point, proof: Proof, challenge:
     input[1] = pf.y;
 
     // Second pairing value
-    input[2] = G2x2;
-    input[3] = G2x1;
-    input[4] = G2y2;
-    input[5] = G2y1;
+    input[2] = G2X2;
+    input[3] = G2X1;
+    input[4] = G2Y2;
+    input[5] = G2Y1;
 
     // Third pairing value
     // Compute -W2
     input[6] = proof.W_dash.x;
-    input[7] = qf - proof.W_dash.y;
+    input[7] = QF - proof.W_dash.y;
 
     // Fourth pairing value
-    input[8] = X2x2;
-    input[9] = X2x1;
-    input[10] = X2y2;
-    input[11] = X2y1;
+    input[8] = X2X2;
+    input[9] = X2X1;
+    input[10] = X2Y2;
+    input[11] = X2Y1;
 
     let groups_of_points: u32 = 2;
 
@@ -1364,14 +1347,14 @@ fn check_pairing(pe: G1Point, pf: G1Point, pj: G1Point, proof: Proof, challenge:
 
 }
 
-// TODO: [u256;1] must be changed to uint256[<%- Math.max(nPublic, 1) %>]
+// TODO: [u256;1] must be changed to uint256[<%- Math.max(N_PUBLIC, 1) %>]
 fn verify_proof(proof: Proof, pub_signal: [u256;1]) -> bool {
 
     // Validate that all evaluations ∈ F
     assert(check_input(proof));
 
     // Compute the challenges: beta, gamma, xi, alpha and y ∈ F, h1w4/h2w3/h3w3 roots, xiN and zh(xi)
-    let (challenges, roots, zh) = compute_challenges(&proof1, pub_signal);
+    let (challenges, roots, zh) = compute_challenges(&PROOF1, pub_signal);
 
     // To divide prime fields the Extended Euclidean Algorithm for computing modular inverses is needed.
     // The Montgomery batch inversion algorithm allow us to compute n inverses reducing to a single one inversion.
@@ -1381,7 +1364,7 @@ fn verify_proof(proof: Proof, pub_signal: [u256;1]) -> bool {
     //      2) Check the inverse sent by the prover it is what it should be
     //      3) Compute the others inverses using the Montgomery Batched Algorithm using the inverse sent to avoid the inversion operation it does.
 
-    let ( inverse_val, pEval_l1)= compute_inversion(roots, challenges, zh, proof1.batch_inv.x);
+    let ( inverse_val, pEval_l1)= compute_inversion(roots, challenges, zh, PROOF1.batch_inv.x);
     let mut Eval_l1: [u256;1] = pEval_l1;
 
     // Compute Lagrange polynomial evaluations Li(xi)
@@ -1391,15 +1374,15 @@ fn verify_proof(proof: Proof, pub_signal: [u256;1]) -> bool {
     let pi = compute_pi(eval_l1, pub_signal);
 
     // Computes r1(y) and r2(y)
-    let r0 = compute_r0(challenges, roots, proof1, inverse_val);
-    let r1 = compute_r1(challenges, roots, proof1, inverse_val, pi);
-    let r2 = compute_r2(challenges, roots, proof1, inverse_val, eval_l1[0]);
+    let r0 = compute_r0(challenges, roots, PROOF1, inverse_val);
+    let r1 = compute_r1(challenges, roots, PROOF1, inverse_val, pi);
+    let r2 = compute_r2(challenges, roots, PROOF1, inverse_val, eval_l1[0]);
 
     // Compute full batched polynomial commitment [F]_1, group-encoded batch evaluation [E]_1 and the full difference [J]_1
-    let (pf, pe, pj) = compute_fej(challenges, proof1, inverse_val, roots, r0, r1, r2);
+    let (pf, pe, pj) = compute_fej(challenges, PROOF1, inverse_val, roots, r0, r1, r2);
 
     // Validate all evaluations
-    let res = check_pairing(pe, pf, pj, proof1, challenges);
+    let res = check_pairing(pe, pf, pj, PROOF1, challenges);
     
     if res == 1 {
         return true;
@@ -1408,10 +1391,20 @@ fn verify_proof(proof: Proof, pub_signal: [u256;1]) -> bool {
     return false;
 }
 
+abi FflonkVerifier {
+    fn verify(proof: Proof, pub_signal: [u256;1]) -> bool;
+}
+
+impl FflonkVerifier for Contract {
+    fn verify(proof: Proof, pub_signal: [u256;1]) -> bool {
+        verify_proof(proof, pub_signal)
+    }
+}
+
 
 // ONLY FOR TESTING
 // so that we dont have to copy everytime in testing
-const proof1: Proof = Proof{
+const PROOF1: Proof = Proof{
     C1: G1Point {
             x: 0x221ad660d2575bbc12cd0f0e749a9456ecdec9a3b6cc3bbc94c03eb9232e3effu256, 
             y: 0x126bee477fc98c7cefe0e54f2ef51d03fc2358e604c57cb37c2673b2dddd101eu256,
@@ -1481,7 +1474,7 @@ const proof1: Proof = Proof{
 #[test]
 fn test_check_input() {
     let _public_signal: u256 = 0x110d778eaf8b8ef7ac10f8ac239a14df0eb292a8d1b71340d527b26301a9ab08u256;
-    assert(check_input(proof1) == true);
+    assert(check_input(PROOF1) == true);
 }
 
 #[test]
@@ -1489,7 +1482,7 @@ fn test_challenge() {
 
     let public_signal: u256 = 0x110d778eaf8b8ef7ac10f8ac239a14df0eb292a8d1b71340d527b26301a9ab08u256;
 
-    let (challenge, _, _) = compute_challenges(&proof1, [public_signal]);
+    let (challenge, _, _) = compute_challenges(&PROOF1, [public_signal]);
     let expected_beta: u256 = 0x020021ade096c7681a001bf89e1b6b078614be20ed11df702729e254cc4276b7u256;
 
     let beta = challenge.beta;
@@ -1519,7 +1512,7 @@ fn test_challenge() {
 fn test_compute_li_s0() {
 
     let public_signal: u256 = 0x110d778eaf8b8ef7ac10f8ac239a14df0eb292a8d1b71340d527b26301a9ab08u256;
-    let (challenges, roots, _) = compute_challenges(&proof1, [public_signal]);
+    let (challenges, roots, _) = compute_challenges(&PROOF1, [public_signal]);
 
     let expected_h0_w8_0 = 0x187355a96fcb8745237e92eb0ef7baa42241dd1e30ef9f671e57fd9acde6969cu256;
     let expected_h0_w8_1 = 0x243eef9bc893a36be21202391a8a54bb9b3fdca5d3ad60c8c0e7021496d7f05au256;
@@ -1591,7 +1584,7 @@ fn test_compute_li_s0() {
 fn test_compute_li_s1() {
 
     let public_signal: u256 = 0x110d778eaf8b8ef7ac10f8ac239a14df0eb292a8d1b71340d527b26301a9ab08u256;
-    let (challenges, roots, _) = compute_challenges(&proof1, [public_signal]);
+    let (challenges, roots, _) = compute_challenges(&PROOF1, [public_signal]);
 
     let res = compute_li_s1(roots, challenges);
 
@@ -1614,7 +1607,7 @@ fn test_compute_li_s1() {
 fn test_compute_li_s2() {
 
     let public_signal: u256 = 0x110d778eaf8b8ef7ac10f8ac239a14df0eb292a8d1b71340d527b26301a9ab08u256;
-    let (challenges, roots, _) = compute_challenges(&proof1, [public_signal]);
+    let (challenges, roots, _) = compute_challenges(&PROOF1, [public_signal]);
 
     let res = compute_li_s2(roots, challenges);
 
@@ -1638,10 +1631,10 @@ fn test_compute_li_s2() {
 fn test_compute_inversion() {
 
     let public_signal: u256 = 0x110d778eaf8b8ef7ac10f8ac239a14df0eb292a8d1b71340d527b26301a9ab08u256;
-    let (challenges, roots, zh) = compute_challenges(&proof1, [public_signal]);
+    let (challenges, roots, zh) = compute_challenges(&PROOF1, [public_signal]);
 
     //zh is store in zhinv for inverse computation
-    let (inverse_val, pEval_l1)= compute_inversion(roots, challenges, zh, proof1.batch_inv.x);
+    let (inverse_val, _)= compute_inversion(roots, challenges, zh, PROOF1.batch_inv.x);
 
     let expected_pDenH1 = 0x15ab61875d3945bbc9392b0354a9abfb40452f34a7fca0d1ccd0a7a8ff901a7cu256;
     let expected_pDenH2 = 0x0a76ee4974ad4ef57e0da374ff210416832ba953383594252e6e5e06dc22e110u256;
@@ -1658,7 +1651,7 @@ fn test_compute_inversion() {
 fn test_inverse_array() {
 
     let public_signal: u256 = 0x110d778eaf8b8ef7ac10f8ac239a14df0eb292a8d1b71340d527b26301a9ab08u256;
-    let (challenges, roots, zh) = compute_challenges(&proof1, [public_signal]);
+    let (challenges, roots, zh) = compute_challenges(&PROOF1, [public_signal]);
 
     let li_s0_inv = compute_li_s0(roots, challenges);
     let li_s1_inv = compute_li_s1(roots, challenges);
@@ -1678,7 +1671,7 @@ fn test_inverse_array() {
     };
     let mut pEval_l1 = [0x1379ba86272ddce77f5f07305480430ce53c2729efce651a9e87d066c427ad07u256];
     //zh is store in zhinv for inverse computation
-    let (inverse_vars,  pEval_l1)= inverse_array(input, pEval_l1, proof1.batch_inv.x);
+    let (inverse_vars,  pEval_l1)= inverse_array(input, pEval_l1, PROOF1.batch_inv.x);
 
     let expected_pDenH1 = 0x15ab61875d3945bbc9392b0354a9abfb40452f34a7fca0d1ccd0a7a8ff901a7cu256;
     let expected_pDenH2 = 0x0a76ee4974ad4ef57e0da374ff210416832ba953383594252e6e5e06dc22e110u256;
@@ -1733,12 +1726,12 @@ fn test_compute_pi() {
 #[test]
 fn test_compute_r0() {
     let public_signal: u256 = 0x110d778eaf8b8ef7ac10f8ac239a14df0eb292a8d1b71340d527b26301a9ab08u256;
-    let (challenges, roots, zh) = compute_challenges(&proof1, [public_signal]);
+    let (challenges, roots, zh) = compute_challenges(&PROOF1, [public_signal]);
 
     //zh is store in zhinv for inverse computation
-    let (inverse_val, pEval_l1)= compute_inversion(roots, challenges, zh, proof1.batch_inv.x);
+    let (inverse_val, _)= compute_inversion(roots, challenges, zh, PROOF1.batch_inv.x);
 
-    let res = compute_r0(challenges, roots, proof1, inverse_val);
+    let res = compute_r0(challenges, roots, PROOF1, inverse_val);
     assert(res == 0x20fdff466630d3c9fa173a8092cbc6764f7b2ede317d0d8cd67b86da4398418au256);
 }
 
@@ -1746,41 +1739,41 @@ fn test_compute_r0() {
 fn test_compute_r1() {
     let public_signal: u256 = 0x110d778eaf8b8ef7ac10f8ac239a14df0eb292a8d1b71340d527b26301a9ab08u256;
     let pi: u256 = 0x080a0e10ddb090705b01961e4d7237f5db4357e256601f403dfd94bf06fe5b38u256;
-    let (challenges, roots, zh) = compute_challenges(&proof1, [public_signal]);
+    let (challenges, roots, zh) = compute_challenges(&PROOF1, [public_signal]);
 
     //zh is store in zhinv for inverse computation
-    let (inverse_val, _)= compute_inversion(roots, challenges, zh, proof1.batch_inv.x);
+    let (inverse_val, _)= compute_inversion(roots, challenges, zh, PROOF1.batch_inv.x);
 
-    let res = compute_r1(challenges, roots, proof1, inverse_val, pi);
+    let res = compute_r1(challenges, roots, PROOF1, inverse_val, pi);
     assert(res == 0x25a1047d2a13d52e414917230fd03b9e7df0df30d47e88fe57191e2063e7356cu256);
 }
 
 #[test]
 fn test_compute_r2() {
     let public_signal: u256 = 0x110d778eaf8b8ef7ac10f8ac239a14df0eb292a8d1b71340d527b26301a9ab08u256;
-    let (challenges, roots, zh) = compute_challenges(&proof1, [public_signal]);
+    let (challenges, roots, zh) = compute_challenges(&PROOF1, [public_signal]);
 
     //zh is store in zhinv for inverse computation
-    let (inverse_val, _)= compute_inversion(roots, challenges, zh, proof1.batch_inv.x);
+    let (inverse_val, _)= compute_inversion(roots, challenges, zh, PROOF1.batch_inv.x);
 
-    let res = compute_r2(challenges, roots, proof1, inverse_val, 0x2a27c4b302cf8686c6287181a80dc4c64d651d30adef81a5aa82af00d376c1f6u256);
+    let res = compute_r2(challenges, roots, PROOF1, inverse_val, 0x2a27c4b302cf8686c6287181a80dc4c64d651d30adef81a5aa82af00d376c1f6u256);
     assert(res == 0x23164b0a55a4cefd84a44025585a689cb709bbcaa9155c4afcd08b6155e23be9u256);
 }
 
 #[test]
 fn test_compute_fej() {
     let public_signal: u256 = 0x110d778eaf8b8ef7ac10f8ac239a14df0eb292a8d1b71340d527b26301a9ab08u256;
-    let (challenges, roots, zh) = compute_challenges(&proof1, [public_signal]);
+    let (challenges, roots, zh) = compute_challenges(&PROOF1, [public_signal]);
 
     //zh is store in zhinv for inverse computation
-    let (inverse_val, _)= compute_inversion(roots, challenges, zh, proof1.batch_inv.x);
+    let (inverse_val, _)= compute_inversion(roots, challenges, zh, PROOF1.batch_inv.x);
 
     let r0 = 0x20fdff466630d3c9fa173a8092cbc6764f7b2ede317d0d8cd67b86da4398418au256;
     let r1 = 0x25a1047d2a13d52e414917230fd03b9e7df0df30d47e88fe57191e2063e7356cu256;
     let r2 = 0x23164b0a55a4cefd84a44025585a689cb709bbcaa9155c4afcd08b6155e23be9u256;
 
 
-    let (pf, pe, pj) = compute_fej(challenges, proof1, inverse_val, roots, r0, r1, r2);
+    let (pf, pe, pj) = compute_fej(challenges, PROOF1, inverse_val, roots, r0, r1, r2);
 
     let expected_pf_x = 0x241a01a81e3722d274ae609e3ee31d58576ea93baf26c097af4319b2cf002364u256;
     let expected_pf_y = 0x07c17af0c04ccc8e0d00f0c95dc4868790befeda1a0e59d371258c024965870fu256;
@@ -1802,7 +1795,7 @@ fn test_compute_fej() {
 #[test]
 fn test_check_pairing() {
     let public_signal: u256 = 0x110d778eaf8b8ef7ac10f8ac239a14df0eb292a8d1b71340d527b26301a9ab08u256;
-    let (challenges, roots, zh) = compute_challenges(&proof1, [public_signal]);
+    let (challenges, _, _) = compute_challenges(&PROOF1, [public_signal]);
 
     let pf = G1Point {
         x: 0x241a01a81e3722d274ae609e3ee31d58576ea93baf26c097af4319b2cf002364u256,
@@ -1819,7 +1812,7 @@ fn test_check_pairing() {
         y: 0x062f89913ea4ddb6c9f467b87b2728a5d814ffd06489ac9421fc493bf8c5b7e9u256,
     };
 
-    let res = check_pairing(pe, pf, pj, proof1, challenges);
+    let res = check_pairing(pe, pf, pj, PROOF1, challenges);
     assert(res == 1);
 }
 
@@ -1827,6 +1820,13 @@ fn test_check_pairing() {
 #[test]
 fn test_verify_proof() {
     let public_signal: u256 = 0x110d778eaf8b8ef7ac10f8ac239a14df0eb292a8d1b71340d527b26301a9ab08u256;
-    let result = verify_proof(proof1, [public_signal]);
+    let result = verify_proof(PROOF1, [public_signal]);
     assert(result == true);
+}
+
+#[test]
+fn test_success() {
+    let caller = abi(FflonkVerifier, CONTRACT_ID);
+    let result = caller.verify(PROOF1, [0x110d778eaf8b8ef7ac10f8ac239a14df0eb292a8d1b71340d527b26301a9ab08u256]);
+    assert(result == true)
 }
