@@ -796,6 +796,86 @@ impl Proof {
         
         result != 0
     }
+
+    // Computes the inverse using the extended euclidean algorithm
+    pub fn inverse(a: u256) -> u256 {
+      let mut t = 0;
+      let mut newt = 1;
+      let mut r = vk.q.x;
+      let mut newr = a;
+      let mut quotient = 0;
+      let mut aux = 0;
+
+      while newr != 0 {
+
+        quotient = r / newr;
+        // aux = t - quotient*newt
+        let mut qt = 0;
+        asm (rA: qt, rB: quotient, rC: newt, rD: vk.q.x){
+          wqmm rA rB rC rD;
+        }
+        qt = vk.q.x - qt;
+        asm (rA: aux, rB: t, rC: qt, rD: vk.q.x){
+          wqam rA rB rC rD;
+        }
+        t = newt;
+        newt = aux;
+
+        // aux = r - quotient*newr
+        let mut qr = 0;
+        asm (rA: qr, rB: quotient, rC: newr, rD:vk.q.x){
+          wqmm rA rB rC rD;
+        }
+        qr = vk.q.x - qr;
+        asm (rA: aux, rB: r, rC: qr, rD: vk.q.x){
+          wqam rA rB rC rD;
+        }
+        r = newr;
+        newr = aux;
+      };
+
+      t
+
+    }
+
+    // Computes the inverse of an array of values
+    // Array length n will change based on the input
+    //NOTE - we can use variable Vec here, but this is more suitable for ejs template
+    fn inverse_array(ref mut vals: [u256; 3]){
+
+      // aux_array length = n-1
+      //NOTE - for array length = 1, aux_array will have type [u256;0], 
+      // seems like the compiler won't complain about it
+      let mut aux_array: [u256; 2] = [0; 2];
+      let mut pos = 1;
+      let mut acc = vals[0];
+      // calculate acc = vals[0]*vals[1]*...*vals[n]
+      // pos < vals length
+      while pos < 3 {
+        aux_array[pos-1] = acc;
+        asm (rA: acc, rB: vals[pos], rC:vk.q.x){
+          wqmm rA rA rB rC;
+        }
+        pos += 1;
+      }
+      // calculate inverse of acc
+      acc = Self::inverse(acc);
+      // pos will be pointing at n+1
+      pos -= 1;
+      // calaulate inverse for every val
+      while pos > 0 {
+        let inv = 0;
+        asm (rA: inv, rB: acc, rC: aux_array[pos-1], rD:vk.q.x){
+          wqmm rA rB rC rD;
+        }
+        asm (rA: acc, rB: vals[pos], rC:vk.q.x){
+          wqmm rA rA rB rC;
+        }
+        vals[pos] = inv;
+        pos -= 1;
+      }
+      vals[pos] = acc;
+    }
 }
 
 fn get_test_proof() -> Proof {
@@ -1093,4 +1173,30 @@ fn test_calculate_e(){
     
     assert(E.x == 0x0dbe940aba2194573041b5fe36a10418ee90345f22573da4f38c6e542f9ff07cu256);
     assert(E.y == 0xbc12210fdfd6c6a8846bae29d8daf0e444ad5d91f65276628ba3157a8b3b4d6u256);
+}
+
+#[test]
+fn test_inverse(){
+  let a = 301904;
+  let b = 0x9dfa618dda0b5091f73ed8a5992ef564b412a435024911b16ab1515d9945122u256;
+  let c = Proof::inverse(a);
+  assert(b==c);
+}
+
+#[test]
+fn test_inverse_array(){
+  let mut a: [u256;3] = [
+      301904, 
+      0x2042def740cbc01bd03583cf0100e59370229adafbd0f5b62d414e62a0000001u256,
+      5756345623
+    ];
+  let b: [u256;3] = [
+      0x9dfa618dda0b5091f73ed8a5992ef564b412a435024911b16ab1515d9945122u256, 
+      3, 
+      0x247255a45d3f68c85fde42515981851734a718b64d53b279ffbf61e15989032bu256
+    ];
+  Proof::inverse_array(a);
+  assert(b[0]==a[0]);
+  assert(b[1]==a[1]);
+  assert(b[2]==a[2]);
 }
