@@ -61,6 +61,23 @@ pub const G2X2: u256 = 0x198E9393920D483A7260BFB731FB5D25F1AA493335A9E71297E485B
 pub const G2Y1: u256 = 0x12C85EA5DB8C6DEB4AAB71808DCB408FE3D1E7690C43D37B4CE6CC0166FA7DAAu256;
 pub const G2Y2: u256 = 0x90689D0585FF075EC9E99AD690C3395BC4B313370B38EF355ACDADCD122975Bu256;
 
+// G1
+pub struct G1Point {
+    pub x: u256,
+    pub y: u256,
+}
+
+// G2
+pub struct G2Point {
+    pub x: [u256;2],
+    pub y: [u256;2],
+}
+
+// scalar
+pub struct Scalar {
+    pub x: u256,
+}
+
 // fflonk Proof
 pub struct Proof {
     C1: G1Point,
@@ -140,22 +157,7 @@ impl u256 {
     }
 }
 
-// G1
-pub struct G1Point {
-    pub x: u256,
-    pub y: u256,
-}
 
-// G2
-pub struct G2Point {
-    pub x: [u256;2],
-    pub y: [u256;2],
-}
-
-// scalar
-pub struct Scalar {
-    pub x: u256,
-}
 
 
 impl G1Point {
@@ -1354,7 +1356,7 @@ fn verify_proof(proof: Proof, pub_signal: [u256;1]) -> bool {
     assert(check_input(proof));
 
     // Compute the challenges: beta, gamma, xi, alpha and y ∈ F, h1w4/h2w3/h3w3 roots, xiN and zh(xi)
-    let (challenges, roots, zh) = compute_challenges(&PROOF1, pub_signal);
+    let (challenges, roots, zh) = compute_challenges(&proof, pub_signal);
 
     // To divide prime fields the Extended Euclidean Algorithm for computing modular inverses is needed.
     // The Montgomery batch inversion algorithm allow us to compute n inverses reducing to a single one inversion.
@@ -1364,7 +1366,7 @@ fn verify_proof(proof: Proof, pub_signal: [u256;1]) -> bool {
     //      2) Check the inverse sent by the prover it is what it should be
     //      3) Compute the others inverses using the Montgomery Batched Algorithm using the inverse sent to avoid the inversion operation it does.
 
-    let ( inverse_val, pEval_l1)= compute_inversion(roots, challenges, zh, PROOF1.batch_inv.x);
+    let ( inverse_val, pEval_l1)= compute_inversion(roots, challenges, zh, proof.batch_inv.x);
     let mut Eval_l1: [u256;1] = pEval_l1;
 
     // Compute Lagrange polynomial evaluations Li(xi)
@@ -1374,15 +1376,15 @@ fn verify_proof(proof: Proof, pub_signal: [u256;1]) -> bool {
     let pi = compute_pi(eval_l1, pub_signal);
 
     // Computes r1(y) and r2(y)
-    let r0 = compute_r0(challenges, roots, PROOF1, inverse_val);
-    let r1 = compute_r1(challenges, roots, PROOF1, inverse_val, pi);
-    let r2 = compute_r2(challenges, roots, PROOF1, inverse_val, eval_l1[0]);
+    let r0 = compute_r0(challenges, roots, proof, inverse_val);
+    let r1 = compute_r1(challenges, roots, proof, inverse_val, pi);
+    let r2 = compute_r2(challenges, roots, proof, inverse_val, eval_l1[0]);
 
     // Compute full batched polynomial commitment [F]_1, group-encoded batch evaluation [E]_1 and the full difference [J]_1
-    let (pf, pe, pj) = compute_fej(challenges, PROOF1, inverse_val, roots, r0, r1, r2);
+    let (pf, pe, pj) = compute_fej(challenges, proof, inverse_val, roots, r0, r1, r2);
 
     // Validate all evaluations
-    let res = check_pairing(pe, pf, pj, PROOF1, challenges);
+    let res = check_pairing(pe, pf, pj, proof, challenges);
     
     if res == 1 {
         return true;
