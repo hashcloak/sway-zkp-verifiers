@@ -168,29 +168,27 @@ impl G1Point {
 
 pub fn on_bn128_curve(p: G1Point) -> bool {
 
-    let QF: u256 = 0x30644E72E131A029B85045B68181585D97816A916871CA8D3C208C16D87CFD47u256;
-
     let mut res: u256 = 0;
-    // y^2 mod QF
-    asm(rA: res, rB: p.y, rC: p.y, rD: QF) {
+    // y^2 mod qf
+    asm(rA: res, rB: p.y, rC: p.y, rD: qf) {
         wqmm rA rB rC rD;
     }
 
     let mut x_square: u256 = 0;
-    // x^2 mod QF
-    asm(rA: x_square, rB: p.x, rC: p.x, rD: QF) {
+    // x^2 mod qf
+    asm(rA: x_square, rB: p.x, rC: p.x, rD: qf) {
         wqmm rA rB rC rD;
     }
 
     let mut x_cubed: u256 = 0;
-    // x^3 mod QF
-    asm(rA: x_cubed, rB: x_square, rC: p.x, rD: QF) {
+    // x^3 mod qf
+    asm(rA: x_cubed, rB: x_square, rC: p.x, rD: qf) {
         wqmm rA rB rC rD;
     }
 
-    // x^3 + 3 mod QF
+    // x^3 + 3 mod qf
     let mut res_x: u256 = 0;
-    asm(rA: res_x, rB: x_cubed, rC: 0x3u256, rD: QF) {
+    asm(rA: res_x, rB: x_cubed, rC: 0x3u256, rD: qf) {
         wqam rA rB rC rD;
     }
     
@@ -269,6 +267,7 @@ struct Proof {
   pub eval_zw: u256,
 }
 
+// Functions hardcoded mod q
 impl u256 {
   fn addmod(self, other: u256) -> u256 {
       let mut res: u256 = 0;
@@ -374,36 +373,20 @@ impl Proof {
       let mut transcript: Bytes = Bytes::new();
 
       ////// BETA
-      // Qmx
-      // Qmy
       transcript.append(Qmx.to_be_bytes());
       transcript.append(Qmy.to_be_bytes());
-      // Qlx
-      // Qly
       transcript.append(Qlx.to_be_bytes());
       transcript.append(Qly.to_be_bytes());
-      // Qrx
-      // Qry
       transcript.append(Qrx.to_be_bytes());
       transcript.append(Qry.to_be_bytes());
-      // Qox
-      // Qoy
       transcript.append(Qox.to_be_bytes());
       transcript.append(Qoy.to_be_bytes());
-      // Qcx
-      // Qcy
       transcript.append(Qcx.to_be_bytes());
       transcript.append(Qcy.to_be_bytes());
-      // S1x
-      // S1y
       transcript.append(S1x.to_be_bytes());
       transcript.append(S1y.to_be_bytes());
-      // S2x
-      // S2y
       transcript.append(S2x.to_be_bytes());
       transcript.append(S2y.to_be_bytes());
-      // S3x
-      // S3y
       transcript.append(S3x.to_be_bytes());
       transcript.append(S3y.to_be_bytes());
       // nPublic*32 bytes of public data
@@ -412,11 +395,8 @@ impl Proof {
           transcript.append(Bytes::from(publicInput[i].to_be_bytes()));
           i += 1;
       }
-      // 64 bytes of pA
       transcript.append(self.proof_A.bytes());
-      // 64 bytes of pB
       transcript.append(self.proof_B.bytes());
-      // 64 bytes of pC
       transcript.append(self.proof_C.bytes());
       // beta = hash(transcript) mod q
       let beta: b256 = keccak256(transcript);
@@ -444,7 +424,7 @@ impl Proof {
           wqam rA rA rC rD;
       };
       
-      ////// XI (xi in Plonk paper)
+      ////// XI
       // xi = hash(alpha, proof_T1, proof_T2, proof_T3) mod qs
       let mut transcript: Bytes = Bytes::new();
       transcript.append(Bytes::from(alpha));
