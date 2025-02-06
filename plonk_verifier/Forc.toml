@@ -3,6 +3,3 @@ authors = ["Elena"]
 entry = "verifier3.sw"
 license = "Apache-2.0"
 name = "plonk_verifier"
-
-[dependencies]
-sway-ecc = { git = "https://github.com/hashcloak/sway-ecc" }
