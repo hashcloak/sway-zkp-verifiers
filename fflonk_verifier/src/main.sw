@@ -1,13 +1,15 @@
+//! This Contract is a Verifier for the Fflonk proof system
+//! The reference contract is solidity contract template of snarkJS
+//! This contract only supports for N_PUBLIC = 1
+//! The generic sway ejs contract template can be found here: https://github.com/hashcloak/snarkjs/blob/sway-zkp-verifiers/templates/verifier_fflonk.sw.ejs.
+//! In order to support for N_PUBLIC > 1, one can replace the TODOs mentioned in the contract.
+
 contract;
 
 use std::hash::Hash;
 use std::hash::keccak256;
 use std::bytes::Bytes;
 use std::bytes_conversions::u256::*;
-
-// https://github.com/man2706kum/sway_ecc/blob/main/verifier_fflonk.sol
-// the above contract is generated using snarkjs 
-// the file is taken as a reference as of now
 
 //TODO: needs to be generated dynamically
 const N_PUBLIC = 1;
@@ -339,8 +341,6 @@ fn compute_challenges(proof: &Proof, pub_signals: [u256;1]) -> (Challenges, Root
     transcript.append(proof.C1.y.to_be_bytes());
 
     let mut beta = u256::from(keccak256(transcript));
-    // TODO the mod function result into failing of test. why?
-    // workaround: using the 256bit addmod 
     beta = beta.addmod(ZERO);
 
     let mut gamma = u256::from(keccak256(beta.to_be_bytes()));
@@ -1349,7 +1349,7 @@ fn check_pairing(pe: G1Point, pf: G1Point, pj: G1Point, proof: Proof, challenge:
 
 }
 
-// TODO: [u256;1] must be changed to uint256[<%- Math.max(N_PUBLIC, 1) %>]
+// TODO: [u256;1] must be changed to uint256[<%- Math.max(N_PUBLIC, 1) %>] for pub_signal
 fn verify_proof(proof: Proof, pub_signal: [u256;1]) -> bool {
 
     // Validate that all evaluations ∈ F
@@ -1367,6 +1367,8 @@ fn verify_proof(proof: Proof, pub_signal: [u256;1]) -> bool {
     //      3) Compute the others inverses using the Montgomery Batched Algorithm using the inverse sent to avoid the inversion operation it does.
 
     let ( inverse_val, pEval_l1)= compute_inversion(roots, challenges, zh, proof.batch_inv.x);
+
+    //TODO: change to max(1, N_PUBLIC)
     let mut Eval_l1: [u256;1] = pEval_l1;
 
     // Compute Lagrange polynomial evaluations Li(xi)
@@ -1393,10 +1395,12 @@ fn verify_proof(proof: Proof, pub_signal: [u256;1]) -> bool {
     return false;
 }
 
+// TODO: [u256;1] must be changed to uint256[<%- Math.max(N_PUBLIC, 1) %>] for pub_signal
 abi FflonkVerifier {
     fn verify(proof: Proof, pub_signal: [u256;1]) -> bool;
 }
 
+// TODO: [u256;1] must be changed to uint256[<%- Math.max(N_PUBLIC, 1) %>] for pub_signal
 impl FflonkVerifier for Contract {
     fn verify(proof: Proof, pub_signal: [u256;1]) -> bool {
         verify_proof(proof, pub_signal)
