@@ -1355,6 +1355,13 @@ fn verify_proof(proof: Proof, pub_signal: [u256;1]) -> bool {
     // Validate that all evaluations ∈ F
     assert(check_input(proof));
 
+    // validate public inputs
+    let mut i = 0;
+    while i < u64::max(N_PUBLIC, 1) {
+        assert(pub_signal[i] < Q);
+        i = i + 1;
+    }
+
     // Compute the challenges: beta, gamma, xi, alpha and y ∈ F, h1w4/h2w3/h3w3 roots, xiN and zh(xi)
     let (challenges, roots, zh) = compute_challenges(&proof, pub_signal);
 
@@ -1409,78 +1416,79 @@ impl FflonkVerifier for Contract {
 
 
 // ONLY FOR TESTING
-// so that we dont have to copy everytime in testing
-const PROOF1: Proof = Proof{
-    C1: G1Point {
-            x: 0x221ad660d2575bbc12cd0f0e749a9456ecdec9a3b6cc3bbc94c03eb9232e3effu256, 
-            y: 0x126bee477fc98c7cefe0e54f2ef51d03fc2358e604c57cb37c2673b2dddd101eu256,
-        },
-        C2: G1Point {
-            x: 0x2f9f3ec75b8f81f765c9fb6eeb31fa1ca1b3204df38a2ff2bb22c46fbd9ff915u256,
-            y: 0x2c7490abf30fb34d888cf1097be1af1377ec60cca19e57b4da3aa47d2d75dcf5u256,
-        },
-        W: G1Point {
-            x: 0x1a5e23a437fa68b2ad59e2b67b7f32a06a761459a437a3a54ef23a5f237d95c7u256,
-            y: 0x1211244f2addbb44a84ce4c774838690eedf20685b1fbf6a7544edecf41e1bbdu256,
-        },
-        W_dash: G1Point {
-            x: 0x2f03ca7d95fe7908a1eee49bfc707bdb5a9efe3e6b466c8c996c917fc30b3de5u256,
-            y: 0x019cf3081794350aede6c4691f0a61501d94dc2adbc8949c74659d67cb841163u256,
-        },
-        q_L: Scalar{
-            x: 0x067125bdbc6964248b3e1fd02bdb7670a4733b25987cbaeb8ab9199320bb3b6du256,
-        },
-        q_R: Scalar {
-            x: 0x23b69ef5466622623aea51b17c324e55a8f1e20b1572c6ba1fc9956db2bb8689u256,
-        },
-        q_M: Scalar {
-            x: 0x0c542266f24f61387b34d6de59685c1325be0a39a908a79c7e39bf0b3c0d14e2u256,
-        },
-        q_O: Scalar {
-            x: 0x2a51432f583fa236dc9cd7c3cf6b9915d8912fe2cbf8155694f1ed756b26abf7u256,
-        },
-        q_C: Scalar {
-            x: 0x0000000000000000000000000000000000000000000000000000000000000000u256,
-        },
-        S_sigma_1: Scalar {
-            x: 0x1ba150613d8b5bbba067f34c174b5d678d8c4ecd9dc4a75692e29a29fafe8c61u256,
-        },
-        S_sigma_2: Scalar {
-            x: 0x20643c6dc3eec0f68103d94efd913aa1d0558d49df70ef95b65d62ddf864615fu256,
-        },
-        S_sigma_3: Scalar {
-            x: 0x199ddc60fd5b390ceba8d2bb54967a8b78e063ef42d14bbe18b39656a6c39139u256,
-        },
-        a: Scalar {
-            x: 0x1aece3ec4efb852d417f02d6722912e0fa228b7815d570e859019fdd456d4794u256,
-        },
-        b: Scalar {
-            x: 0x0015ec5fef99ea0e8e3641abc74892482e7fac7a916be4067d6e101165e891efu256,
-        },
-        c: Scalar {
-            x: 0x0237611fbb1cdc29a4e565219cc727497c09b25a2e2076b03ef491d107324552u256,
-        },
-        z: Scalar {
-            x: 0x034348c3e8d591329f37054ac4a8e3ec56d75d5a821ad95833e59363e3687a17u256,
-        },
-        z_omega: Scalar {
-            x: 0x30085eec676c53ce01951a1f9b5c67662cbdccc13d2ab180c6170cee7249f2e6u256,
-        },
-        T_1_omega: Scalar {
-            x: 0x03e64174dcca0d13a4c765a3ea9e8107109f98151e24eef9df8ddaeb849e125au256,
-        },
-        T_2_omega: Scalar {
-            x: 0x0ef990764d5a526d52fb17836be9502b36c4d59e644829e20762829f12556be9u256,
-        },
-        batch_inv: Scalar {
-            x: 0x2172803eac8862f41ccc20cc1854cb1e4ec4327c8f3e791863dcd4a7eef0fb69u256,
-        },
-};
+fn get_test_proof() -> Proof {
+    Proof{
+        C1: G1Point {
+                x: 0x221ad660d2575bbc12cd0f0e749a9456ecdec9a3b6cc3bbc94c03eb9232e3effu256, 
+                y: 0x126bee477fc98c7cefe0e54f2ef51d03fc2358e604c57cb37c2673b2dddd101eu256,
+            },
+            C2: G1Point {
+                x: 0x2f9f3ec75b8f81f765c9fb6eeb31fa1ca1b3204df38a2ff2bb22c46fbd9ff915u256,
+                y: 0x2c7490abf30fb34d888cf1097be1af1377ec60cca19e57b4da3aa47d2d75dcf5u256,
+            },
+            W: G1Point {
+                x: 0x1a5e23a437fa68b2ad59e2b67b7f32a06a761459a437a3a54ef23a5f237d95c7u256,
+                y: 0x1211244f2addbb44a84ce4c774838690eedf20685b1fbf6a7544edecf41e1bbdu256,
+            },
+            W_dash: G1Point {
+                x: 0x2f03ca7d95fe7908a1eee49bfc707bdb5a9efe3e6b466c8c996c917fc30b3de5u256,
+                y: 0x019cf3081794350aede6c4691f0a61501d94dc2adbc8949c74659d67cb841163u256,
+            },
+            q_L: Scalar{
+                x: 0x067125bdbc6964248b3e1fd02bdb7670a4733b25987cbaeb8ab9199320bb3b6du256,
+            },
+            q_R: Scalar {
+                x: 0x23b69ef5466622623aea51b17c324e55a8f1e20b1572c6ba1fc9956db2bb8689u256,
+            },
+            q_M: Scalar {
+                x: 0x0c542266f24f61387b34d6de59685c1325be0a39a908a79c7e39bf0b3c0d14e2u256,
+            },
+            q_O: Scalar {
+                x: 0x2a51432f583fa236dc9cd7c3cf6b9915d8912fe2cbf8155694f1ed756b26abf7u256,
+            },
+            q_C: Scalar {
+                x: 0x0000000000000000000000000000000000000000000000000000000000000000u256,
+            },
+            S_sigma_1: Scalar {
+                x: 0x1ba150613d8b5bbba067f34c174b5d678d8c4ecd9dc4a75692e29a29fafe8c61u256,
+            },
+            S_sigma_2: Scalar {
+                x: 0x20643c6dc3eec0f68103d94efd913aa1d0558d49df70ef95b65d62ddf864615fu256,
+            },
+            S_sigma_3: Scalar {
+                x: 0x199ddc60fd5b390ceba8d2bb54967a8b78e063ef42d14bbe18b39656a6c39139u256,
+            },
+            a: Scalar {
+                x: 0x1aece3ec4efb852d417f02d6722912e0fa228b7815d570e859019fdd456d4794u256,
+            },
+            b: Scalar {
+                x: 0x0015ec5fef99ea0e8e3641abc74892482e7fac7a916be4067d6e101165e891efu256,
+            },
+            c: Scalar {
+                x: 0x0237611fbb1cdc29a4e565219cc727497c09b25a2e2076b03ef491d107324552u256,
+            },
+            z: Scalar {
+                x: 0x034348c3e8d591329f37054ac4a8e3ec56d75d5a821ad95833e59363e3687a17u256,
+            },
+            z_omega: Scalar {
+                x: 0x30085eec676c53ce01951a1f9b5c67662cbdccc13d2ab180c6170cee7249f2e6u256,
+            },
+            T_1_omega: Scalar {
+                x: 0x03e64174dcca0d13a4c765a3ea9e8107109f98151e24eef9df8ddaeb849e125au256,
+            },
+            T_2_omega: Scalar {
+                x: 0x0ef990764d5a526d52fb17836be9502b36c4d59e644829e20762829f12556be9u256,
+            },
+            batch_inv: Scalar {
+                x: 0x2172803eac8862f41ccc20cc1854cb1e4ec4327c8f3e791863dcd4a7eef0fb69u256,
+            },
+    }
+}
 
 #[test]
 fn test_check_input() {
     let _public_signal: u256 = 0x110d778eaf8b8ef7ac10f8ac239a14df0eb292a8d1b71340d527b26301a9ab08u256;
-    assert(check_input(PROOF1) == true);
+    assert(check_input(get_test_proof()) == true);
 }
 
 #[test]
@@ -1488,7 +1496,7 @@ fn test_challenge() {
 
     let public_signal: u256 = 0x110d778eaf8b8ef7ac10f8ac239a14df0eb292a8d1b71340d527b26301a9ab08u256;
 
-    let (challenge, _, _) = compute_challenges(&PROOF1, [public_signal]);
+    let (challenge, _, _) = compute_challenges(&get_test_proof(), [public_signal]);
     let expected_beta: u256 = 0x020021ade096c7681a001bf89e1b6b078614be20ed11df702729e254cc4276b7u256;
 
     let beta = challenge.beta;
@@ -1518,7 +1526,7 @@ fn test_challenge() {
 fn test_compute_li_s0() {
 
     let public_signal: u256 = 0x110d778eaf8b8ef7ac10f8ac239a14df0eb292a8d1b71340d527b26301a9ab08u256;
-    let (challenges, roots, _) = compute_challenges(&PROOF1, [public_signal]);
+    let (challenges, roots, _) = compute_challenges(&get_test_proof(), [public_signal]);
 
     let expected_h0_w8_0 = 0x187355a96fcb8745237e92eb0ef7baa42241dd1e30ef9f671e57fd9acde6969cu256;
     let expected_h0_w8_1 = 0x243eef9bc893a36be21202391a8a54bb9b3fdca5d3ad60c8c0e7021496d7f05au256;
@@ -1590,7 +1598,7 @@ fn test_compute_li_s0() {
 fn test_compute_li_s1() {
 
     let public_signal: u256 = 0x110d778eaf8b8ef7ac10f8ac239a14df0eb292a8d1b71340d527b26301a9ab08u256;
-    let (challenges, roots, _) = compute_challenges(&PROOF1, [public_signal]);
+    let (challenges, roots, _) = compute_challenges(&get_test_proof(), [public_signal]);
 
     let res = compute_li_s1(roots, challenges);
 
@@ -1613,7 +1621,7 @@ fn test_compute_li_s1() {
 fn test_compute_li_s2() {
 
     let public_signal: u256 = 0x110d778eaf8b8ef7ac10f8ac239a14df0eb292a8d1b71340d527b26301a9ab08u256;
-    let (challenges, roots, _) = compute_challenges(&PROOF1, [public_signal]);
+    let (challenges, roots, _) = compute_challenges(&get_test_proof(), [public_signal]);
 
     let res = compute_li_s2(roots, challenges);
 
@@ -1637,10 +1645,10 @@ fn test_compute_li_s2() {
 fn test_compute_inversion() {
 
     let public_signal: u256 = 0x110d778eaf8b8ef7ac10f8ac239a14df0eb292a8d1b71340d527b26301a9ab08u256;
-    let (challenges, roots, zh) = compute_challenges(&PROOF1, [public_signal]);
+    let (challenges, roots, zh) = compute_challenges(&get_test_proof(), [public_signal]);
 
     //zh is store in zhinv for inverse computation
-    let (inverse_val, _)= compute_inversion(roots, challenges, zh, PROOF1.batch_inv.x);
+    let (inverse_val, _)= compute_inversion(roots, challenges, zh, get_test_proof().batch_inv.x);
 
     let expected_pDenH1 = 0x15ab61875d3945bbc9392b0354a9abfb40452f34a7fca0d1ccd0a7a8ff901a7cu256;
     let expected_pDenH2 = 0x0a76ee4974ad4ef57e0da374ff210416832ba953383594252e6e5e06dc22e110u256;
@@ -1657,7 +1665,7 @@ fn test_compute_inversion() {
 fn test_inverse_array() {
 
     let public_signal: u256 = 0x110d778eaf8b8ef7ac10f8ac239a14df0eb292a8d1b71340d527b26301a9ab08u256;
-    let (challenges, roots, zh) = compute_challenges(&PROOF1, [public_signal]);
+    let (challenges, roots, zh) = compute_challenges(&get_test_proof(), [public_signal]);
 
     let li_s0_inv = compute_li_s0(roots, challenges);
     let li_s1_inv = compute_li_s1(roots, challenges);
@@ -1677,7 +1685,7 @@ fn test_inverse_array() {
     };
     let mut pEval_l1 = [0x1379ba86272ddce77f5f07305480430ce53c2729efce651a9e87d066c427ad07u256];
     //zh is store in zhinv for inverse computation
-    let (inverse_vars,  pEval_l1)= inverse_array(input, pEval_l1, PROOF1.batch_inv.x);
+    let (inverse_vars,  pEval_l1)= inverse_array(input, pEval_l1, get_test_proof().batch_inv.x);
 
     let expected_pDenH1 = 0x15ab61875d3945bbc9392b0354a9abfb40452f34a7fca0d1ccd0a7a8ff901a7cu256;
     let expected_pDenH2 = 0x0a76ee4974ad4ef57e0da374ff210416832ba953383594252e6e5e06dc22e110u256;
@@ -1732,12 +1740,12 @@ fn test_compute_pi() {
 #[test]
 fn test_compute_r0() {
     let public_signal: u256 = 0x110d778eaf8b8ef7ac10f8ac239a14df0eb292a8d1b71340d527b26301a9ab08u256;
-    let (challenges, roots, zh) = compute_challenges(&PROOF1, [public_signal]);
+    let (challenges, roots, zh) = compute_challenges(&get_test_proof(), [public_signal]);
 
     //zh is store in zhinv for inverse computation
-    let (inverse_val, _)= compute_inversion(roots, challenges, zh, PROOF1.batch_inv.x);
+    let (inverse_val, _)= compute_inversion(roots, challenges, zh, get_test_proof().batch_inv.x);
 
-    let res = compute_r0(challenges, roots, PROOF1, inverse_val);
+    let res = compute_r0(challenges, roots, get_test_proof(), inverse_val);
     assert(res == 0x20fdff466630d3c9fa173a8092cbc6764f7b2ede317d0d8cd67b86da4398418au256);
 }
 
@@ -1745,41 +1753,41 @@ fn test_compute_r0() {
 fn test_compute_r1() {
     let public_signal: u256 = 0x110d778eaf8b8ef7ac10f8ac239a14df0eb292a8d1b71340d527b26301a9ab08u256;
     let pi: u256 = 0x080a0e10ddb090705b01961e4d7237f5db4357e256601f403dfd94bf06fe5b38u256;
-    let (challenges, roots, zh) = compute_challenges(&PROOF1, [public_signal]);
+    let (challenges, roots, zh) = compute_challenges(&get_test_proof(), [public_signal]);
 
     //zh is store in zhinv for inverse computation
-    let (inverse_val, _)= compute_inversion(roots, challenges, zh, PROOF1.batch_inv.x);
+    let (inverse_val, _)= compute_inversion(roots, challenges, zh, get_test_proof().batch_inv.x);
 
-    let res = compute_r1(challenges, roots, PROOF1, inverse_val, pi);
+    let res = compute_r1(challenges, roots, get_test_proof(), inverse_val, pi);
     assert(res == 0x25a1047d2a13d52e414917230fd03b9e7df0df30d47e88fe57191e2063e7356cu256);
 }
 
 #[test]
 fn test_compute_r2() {
     let public_signal: u256 = 0x110d778eaf8b8ef7ac10f8ac239a14df0eb292a8d1b71340d527b26301a9ab08u256;
-    let (challenges, roots, zh) = compute_challenges(&PROOF1, [public_signal]);
+    let (challenges, roots, zh) = compute_challenges(&get_test_proof(), [public_signal]);
 
     //zh is store in zhinv for inverse computation
-    let (inverse_val, _)= compute_inversion(roots, challenges, zh, PROOF1.batch_inv.x);
+    let (inverse_val, _)= compute_inversion(roots, challenges, zh, get_test_proof().batch_inv.x);
 
-    let res = compute_r2(challenges, roots, PROOF1, inverse_val, 0x2a27c4b302cf8686c6287181a80dc4c64d651d30adef81a5aa82af00d376c1f6u256);
+    let res = compute_r2(challenges, roots, get_test_proof(), inverse_val, 0x2a27c4b302cf8686c6287181a80dc4c64d651d30adef81a5aa82af00d376c1f6u256);
     assert(res == 0x23164b0a55a4cefd84a44025585a689cb709bbcaa9155c4afcd08b6155e23be9u256);
 }
 
 #[test]
 fn test_compute_fej() {
     let public_signal: u256 = 0x110d778eaf8b8ef7ac10f8ac239a14df0eb292a8d1b71340d527b26301a9ab08u256;
-    let (challenges, roots, zh) = compute_challenges(&PROOF1, [public_signal]);
+    let (challenges, roots, zh) = compute_challenges(&get_test_proof(), [public_signal]);
 
     //zh is store in zhinv for inverse computation
-    let (inverse_val, _)= compute_inversion(roots, challenges, zh, PROOF1.batch_inv.x);
+    let (inverse_val, _)= compute_inversion(roots, challenges, zh, get_test_proof().batch_inv.x);
 
     let r0 = 0x20fdff466630d3c9fa173a8092cbc6764f7b2ede317d0d8cd67b86da4398418au256;
     let r1 = 0x25a1047d2a13d52e414917230fd03b9e7df0df30d47e88fe57191e2063e7356cu256;
     let r2 = 0x23164b0a55a4cefd84a44025585a689cb709bbcaa9155c4afcd08b6155e23be9u256;
 
 
-    let (pf, pe, pj) = compute_fej(challenges, PROOF1, inverse_val, roots, r0, r1, r2);
+    let (pf, pe, pj) = compute_fej(challenges, get_test_proof(), inverse_val, roots, r0, r1, r2);
 
     let expected_pf_x = 0x241a01a81e3722d274ae609e3ee31d58576ea93baf26c097af4319b2cf002364u256;
     let expected_pf_y = 0x07c17af0c04ccc8e0d00f0c95dc4868790befeda1a0e59d371258c024965870fu256;
@@ -1801,7 +1809,7 @@ fn test_compute_fej() {
 #[test]
 fn test_check_pairing() {
     let public_signal: u256 = 0x110d778eaf8b8ef7ac10f8ac239a14df0eb292a8d1b71340d527b26301a9ab08u256;
-    let (challenges, _, _) = compute_challenges(&PROOF1, [public_signal]);
+    let (challenges, _, _) = compute_challenges(&get_test_proof(), [public_signal]);
 
     let pf = G1Point {
         x: 0x241a01a81e3722d274ae609e3ee31d58576ea93baf26c097af4319b2cf002364u256,
@@ -1818,7 +1826,7 @@ fn test_check_pairing() {
         y: 0x062f89913ea4ddb6c9f467b87b2728a5d814ffd06489ac9421fc493bf8c5b7e9u256,
     };
 
-    let res = check_pairing(pe, pf, pj, PROOF1, challenges);
+    let res = check_pairing(pe, pf, pj, get_test_proof(), challenges);
     assert(res == 1);
 }
 
@@ -1826,13 +1834,13 @@ fn test_check_pairing() {
 #[test]
 fn test_verify_proof() {
     let public_signal: u256 = 0x110d778eaf8b8ef7ac10f8ac239a14df0eb292a8d1b71340d527b26301a9ab08u256;
-    let result = verify_proof(PROOF1, [public_signal]);
+    let result = verify_proof(get_test_proof(), [public_signal]);
     assert(result == true);
 }
 
 #[test]
 fn test_success() {
     let caller = abi(FflonkVerifier, CONTRACT_ID);
-    let result = caller.verify(PROOF1, [0x110d778eaf8b8ef7ac10f8ac239a14df0eb292a8d1b71340d527b26301a9ab08u256]);
+    let result = caller.verify(get_test_proof(), [0x110d778eaf8b8ef7ac10f8ac239a14df0eb292a8d1b71340d527b26301a9ab08u256]);
     assert(result == true)
 }
