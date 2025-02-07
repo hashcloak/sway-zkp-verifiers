@@ -108,61 +108,45 @@ impl G1Point {
         }
     }
 
-    pub fn point_add(self, p2: G1Point) -> G1Point {
-        let mut input: [u8; 128] = [0; 128];
-        let mut output: [u8; 64] = [0; 64];
+    pub fn point_add(self, other: G1Point) -> Self {
+        let mut input: [u256; 4] = [0; 4];
+        let mut output: [u256; 2] = [0; 2];
 
-        let mut p1_bytes: [u8; 64] = self.to_bytes();
-        let mut p2_bytes: [u8; 64] = p2.to_bytes();
-
-        let mut i = 0;
-        while i < 64 {
-            input[i] = p1_bytes[i];
-            input[i + 64] = p2_bytes[i];
-            i += 1;
-        }
-
-        let curve_id: u32 = 0;
-        let op_type: u32 = 0;//point addition
+        // prepare input
+        input[0] = self.x;
+        input[1] = self.y;
+        input[2] = other.x;
+        input[3] = other.y;
 
         // ecc addition opcode
-        // https://github.com/FuelLabs/fuel-specs/blob/abfd0bb29fab605e0e067165363581232c40e0bb/src/fuel-vm/instruction-set.md#ecop-elliptic-curve-point-operation
-        asm(rA: output, rB: curve_id, rC: op_type, rD: input) {
+        asm(rA: output, rB: 0, rC: 0, rD: input) {
             ecop rA rB rC rD;
         }
         
-        G1Point::from_bytes(output)
+        G1Point{
+            x: output[0],
+            y: output[1],
+        }
     }
 
-    pub fn u256_mul(self, s: u256) -> G1Point {
-        let mut input: [u8; 96] = [0; 96];
-        let mut output: [u8; 64] = [0; 64];
+    pub fn u256_mul(self, s: u256) -> Self {
+        let mut input: [u256; 3] = [0; 3];
+        let mut output: [u256; 2] = [0; 2];
 
-        let mut p_bytes: [u8; 64] = self.to_bytes();
-        let mut s_bytes: [u8; 32] = s.to_be_bytes();
-
-        // preparing inputs
-        let mut i = 0;
-        while i < 64 {
-            input[i] = p_bytes[i];
-            i += 1;
-        }
-
-        while i < 96 {
-            input[i] = s_bytes[i - 64];
-            i += 1;
-        }
-
-        let curve_id: u32 = 0;
-        let op_type: u32 = 1;
+        // prepare input
+        input[0] = self.x;
+        input[1] = self.y;
+        input[2] = s;
 
         // ecc multiplication opcode
-        // https://github.com/FuelLabs/fuel-specs/blob/abfd0bb29fab605e0e067165363581232c40e0bb/src/fuel-vm/instruction-set.md#ecop-elliptic-curve-point-operation
-        asm(rA: output, rB: curve_id, rC: op_type, rD: input) {
+        asm(rA: output, rB: 0, rC: 1, rD: input) {
             ecop rA rB rC rD;
         }
 
-        G1Point::from_bytes(output)
+        G1Point{
+            x: output[0],
+            y: output[1],
+        }
     }
 }
 

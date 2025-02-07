@@ -108,61 +108,45 @@ impl G1Point {
         }
     }
 
-    pub fn point_add(self, p2: G1Point) -> G1Point {
-        let mut input: [u8; 128] = [0; 128];
-        let mut output: [u8; 64] = [0; 64];
+    pub fn point_add(self, other: G1Point) -> Self {
+        let mut input: [u256; 4] = [0; 4];
+        let mut output: [u256; 2] = [0; 2];
 
-        let mut p1_bytes: [u8; 64] = self.to_bytes();
-        let mut p2_bytes: [u8; 64] = p2.to_bytes();
-
-        let mut i = 0;
-        while i < 64 {
-            input[i] = p1_bytes[i];
-            input[i + 64] = p2_bytes[i];
-            i += 1;
-        }
-
-        let curve_id: u32 = 0;
-        let op_type: u32 = 0;//point addition
+        // prepare input
+        input[0] = self.x;
+        input[1] = self.y;
+        input[2] = other.x;
+        input[3] = other.y;
 
         // ecc addition opcode
-        // https://github.com/FuelLabs/fuel-specs/blob/abfd0bb29fab605e0e067165363581232c40e0bb/src/fuel-vm/instruction-set.md#ecop-elliptic-curve-point-operation
-        asm(rA: output, rB: curve_id, rC: op_type, rD: input) {
+        asm(rA: output, rB: 0, rC: 0, rD: input) {
             ecop rA rB rC rD;
         }
         
-        G1Point::from_bytes(output)
+        G1Point{
+            x: output[0],
+            y: output[1],
+        }
     }
 
-    pub fn u256_mul(self, s: u256) -> G1Point {
-        let mut input: [u8; 96] = [0; 96];
-        let mut output: [u8; 64] = [0; 64];
+    pub fn u256_mul(self, s: u256) -> Self {
+        let mut input: [u256; 3] = [0; 3];
+        let mut output: [u256; 2] = [0; 2];
 
-        let mut p_bytes: [u8; 64] = self.to_bytes();
-        let mut s_bytes: [u8; 32] = s.to_be_bytes();
-
-        // preparing inputs
-        let mut i = 0;
-        while i < 64 {
-            input[i] = p_bytes[i];
-            i += 1;
-        }
-
-        while i < 96 {
-            input[i] = s_bytes[i - 64];
-            i += 1;
-        }
-
-        let curve_id: u32 = 0;
-        let op_type: u32 = 1;
+        // prepare input
+        input[0] = self.x;
+        input[1] = self.y;
+        input[2] = s;
 
         // ecc multiplication opcode
-        // https://github.com/FuelLabs/fuel-specs/blob/abfd0bb29fab605e0e067165363581232c40e0bb/src/fuel-vm/instruction-set.md#ecop-elliptic-curve-point-operation
-        asm(rA: output, rB: curve_id, rC: op_type, rD: input) {
+        asm(rA: output, rB: 0, rC: 1, rD: input) {
             ecop rA rB rC rD;
         }
 
-        G1Point::from_bytes(output)
+        G1Point{
+            x: output[0],
+            y: output[1],
+        }
     }
 }
 
@@ -214,25 +198,25 @@ const G2y2: u256 = 0x90689d0585ff075ec9e99ad690c3395bc4b313370b38ef355acdadcd122
 
 // Verification Key data
 const n: u32         = 8;
-const nPublic: u16   = 1;
-const nLagrange: u16 = 1;
+const nPublic: u16   = 4;
+const nLagrange: u16 = 4;
 
-const Qmx: u256  = 0x2c57c027139e6180ffe97afe98302047d9735b7d908ea81560e47bff9e8e22c4u256;
-const Qmy: u256  = 0x262083f2a8a93f6b51632108b9d9840857dd75283f84df5b869dc7097e4565du256;
-const Qlx: u256  = 0x2ad388fadb2fb24da9e185e8980c34606e894b5bc9ccb869ec6b3ce0581c21c4u256;
-const Qly: u256  = 0xa257b67dfeea095a8fc2d6649893105b3f5d94495f14252676a94cf97c6dcdcu256;
-const Qrx: u256  = 0x7a719859f6efcc21f54ba91b2a8ca6826d94fcc028022f2a7f915f2097a5e37u256;
-const Qry: u256  = 0xdc183f776d67a93099f0b57ab8fd9ee4bcf75d4a29a3dcb7f4d5fd2738b0c51u256;
-const Qox: u256  = 0x406177fcc55c227edd0b7133db05cb87d611a1bc46185a9d3bfcf779caa9fb7u256;
-const Qoy: u256  = 0x5922093e997a3df08d9359b7234eee1c2265602988d3216244860f7a10fe9feu256;
+const Qmx: u256  = 0x28c42f29293a24fbc6f5c6cea24cbc5ff7b146dffd3321247b24aace5ac2037du256;
+const Qmy: u256  = 0xf46d80d667800cc3ff6651b3fe35e1acc88fd7e6b31ae0f52f52eb3c696ca5u256;
+const Qlx: u256  = 0x2bf07464bbd3ea05c673b14f01141ef96940aff9dfe305cd75dfecc0750c8348u256;
+const Qly: u256  = 0xb06eb3f6c06c261214b68d788ad075eb8a1c7cfe14cccb46ecc8683fd9cef8au256;
+const Qrx: u256  = 0x0u256;
+const Qry: u256  = 0x0u256;
+const Qox: u256  = 0x28c42f29293a24fbc6f5c6cea24cbc5ff7b146dffd3321247b24aace5ac2037du256;
+const Qoy: u256  = 0x2f6fe0f20aca201cf450df64cd83227beab8dab981beafac46f1392b9c1390a2u256;
 const Qcx: u256  = 0x0u256;
 const Qcy: u256  = 0x0u256;
-const S1x: u256  = 0x2700d44e9842cd4d9277c77dca3d4cd371159a10f1c51a57a9d06e7ec4858807u256;
-const S1y: u256  = 0x21b6087e43f6cf3530a1c455625b279e5afd568bfc6e96f10c453bc98a803f3du256;
-const S2x: u256  = 0xeb2444f19ada5e8a93945592d6852f514b4a44b621f12ca04d0bc780d4c544eu256;
-const S2y: u256  = 0x2be6c8b629c37b81a6e7206fb6c68fa180c5a60c1d7461552d1aec1b3085651bu256;
-const S3x: u256  = 0x1b932b35e2a675fda27050e30d82fb7400760c74a0b300ffaf7f121fa8e6f72fu256;
-const S3y: u256  = 0x1cd8f9f03d8b6b40c897d33c41c4aee90cc7d9c2ba10bd19db1fdf99dbef8906u256;
+const S1x: u256  = 0x148b6394212070f2e234a66b3aa4269d04b997a05acf96567d4a2deb47b9d006u256;
+const S1y: u256  = 0x232621182f32f4f372f6143f2bf0f85b3ab57bd3144b6546425f339e7d032cd0u256;
+const S2x: u256  = 0x15d2a1fb9e16babc46aba685fed95c3f068e0c844c88d34fa0cfad1b70802291u256;
+const S2y: u256  = 0x176ebfd93a3a0185869b9c9fc1f58a0f3bbc5db40c7ff08eddebe28f7c1f318fu256;
+const S3x: u256  = 0x1f548768cab0517d949ce1fb51f45d6f160724ea09f9dd2569e3e1564f030baau256;
+const S3y: u256  = 0x4f6f9edf906b8acb60e872a3b60984eb7280072e8f788e488f397e73b493492u256;
 const k1: u256   = 0x2u256;
 const k2: u256   = 0x3u256;
 const X2x1: u256 = 0x1174d238e8e0e33844b30c8db7d0d00757014cc24d20fda74348f2a4ab553690u256;
@@ -333,16 +317,16 @@ impl Proof {
   }
   // Computes the inverse of an array of values
   // Array length n will change based on the input
-  fn inverse_array(ref mut vals: [u256; 1]){
+  fn inverse_array(ref mut vals: [u256; 4]){
       // aux_array length = n-1
       //NOTE - for array length = 1, aux_array will have type [u256;0], 
       // seems like the compiler won't complain about it
-      let mut aux_array: [u256; 0] = [0; 0];
+      let mut aux_array: [u256; 3] = [0; 3];
       let mut pos = 1;
       let mut acc = vals[0];
       // calculate acc = vals[0]*vals[1]*...*vals[n]
       // pos < vals length
-      while pos < 1 {
+      while pos < 4 {
         aux_array[pos-1] = acc;
         asm (rA: acc, rB: vals[pos], rC:q){
           wqmm rA rA rB rC;
@@ -369,7 +353,7 @@ impl Proof {
   }
 
   // beta, gamma, alpha, xi (=zeta), v, u
-  fn get_challenges(self, publicInput: [u256; 1]) -> [b256;6] {
+  fn get_challenges(self, publicInput: [u256; 4]) -> [b256;6] {
       let mut transcript: Bytes = Bytes::new();
 
       ////// BETA
@@ -391,7 +375,7 @@ impl Proof {
       transcript.append(S3y.to_be_bytes());
       // nPublic*32 bytes of public data
       let mut i = 0;
-      while i < 1 {
+      while i < 4 {
           transcript.append(Bytes::from(publicInput[i].to_be_bytes()));
           i += 1;
       }
@@ -464,7 +448,7 @@ impl Proof {
       return [beta, gamma, alpha, xi, v, u]
   }
 
-  fn calculateLagrange(self, xi: u256, ref mut pEval: [u256; 1]) -> u256 {
+  fn calculateLagrange(self, xi: u256, ref mut pEval: [u256; 4]) -> u256 {
     // We want for i=0..nPublic: Li(z) = ω^i(z^n−1) / n(z−ω^i)
 
     // 1. pEval_i = n(xi-w^i) mod q
@@ -473,7 +457,7 @@ impl Proof {
     let mut i = 0;
     let mut w = 1;
     // Step 1.
-    while i < 1 {
+    while i < 4 {
         let temp = xi.submod(w);
         pEval[i] = temp.mulmod(n.as_u256());
         w = w.mulmod(w1);
@@ -498,7 +482,7 @@ impl Proof {
     let num: u256 = xi_pow_n.submod(1);
     i = 0;
     w = 1;
-    while i < 1 {
+    while i < 4 {
         pEval[i] = w.mulmod(pEval[i]).mulmod(num);
         w = w.mulmod(w1);
         i = i + 1;
@@ -509,7 +493,7 @@ impl Proof {
   }
 
   // SUM(w_i*L_i(xi)) 
-  fn calculatePI(self, pEval: [u256; 1], publicInput: [u256; 1]) -> u256 {
+  fn calculatePI(self, pEval: [u256; 4], publicInput: [u256; 4]) -> u256 {
       let mut res: u256 = 0;
       let mut temp: u256 = 0;
       let mut i = 0;
@@ -860,7 +844,7 @@ impl Proof {
 
 
   // In this case, public input has length 1
-  pub fn verify(self, publicInput: [u256; 1]) -> bool {
+  pub fn verify(self, publicInput: [u256; 4]) -> bool {
       // 1. Check points are on curve
       // ([a]1, [b]1, [c]1, [z]1, [tlo]1, [tmid]1, [thi]1, [Wz]1, [Wzω]1) ∈ G91
       if !(on_bn128_curve(self.proof_A)
@@ -886,7 +870,7 @@ impl Proof {
       // 3. Validate public input 
       // (wi)i∈[ℓ] ∈ Fℓ
       let mut i = 0;
-      while i < 1 {
+      while i < 4 {
           if publicInput[i] >= q {
             return false; 
           }
@@ -904,7 +888,7 @@ impl Proof {
       let u = u256::from(challenges[5]);
 
       // Step 5&6: compute w(z^n-1)/n*(z-w)
-      let mut pEval: [u256; 1] = [0;1];
+      let mut pEval: [u256; 4] = [0;4];
       let xi_pow_n = self.calculateLagrange(xi, pEval);
 
       // Step 7: compute PI (public input polynomial evaluation)
