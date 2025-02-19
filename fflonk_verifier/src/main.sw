@@ -329,9 +329,8 @@ fn compute_challenges(proof: &Proof, pub_signals: [u256;1]) -> (Challenges, Root
 
     transcript.append(C0X.to_be_bytes());
     transcript.append(C0Y.to_be_bytes());
-    transcript.append(pub_signals[0].to_be_bytes());
 
-    let mut i = 1;
+    let mut i = 0;
     while i < N_PUBLIC {
         transcript.append(pub_signals[i].to_be_bytes());
         i += 1;
