@@ -1,0 +1,5 @@
+[project]
+authors = ["Elena"]
+entry = "verifier3.sw"
+license = "Apache-2.0"
+name = "plonk_verifier"
